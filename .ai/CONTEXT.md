@@ -23,63 +23,103 @@
 
 ## 1. Project Summary
 
-<!-- Fill this section with your project's key information -->
-
 ### Identity
-- **Name**: [Project Name]
-- **Type**: [Web App | API | Library | CLI | etc.]
-- **Stage**: [Greenfield | MVP | Growth | Mature]
+- **Name**: Just In Time
+- **Type**: Browser-based RPG Game (Web App)
+- **Stage**: MVP (v0.1.0 "Unfrozen")
 
 ### One-Liner
-> [One sentence describing what this project does and for whom]
+> A post-apocalyptic browser RPG in the style of Fallout II with Infocom-style dark humor, built with vanilla JavaScript and HTML5 Canvas.
 
 ### Tech Stack
 | Layer | Technology |
 |-------|------------|
-| Language | [TypeScript, Python, Go, etc.] |
-| Framework | [Next.js, FastAPI, etc.] |
-| Database | [PostgreSQL, MongoDB, etc.] |
-| Infrastructure | [AWS, GCP, Vercel, etc.] |
+| Language | Vanilla JavaScript (ES Modules) |
+| Framework | None (no framework, no build step) |
+| Rendering | HTML5 Canvas (tile-based ASCII art) |
+| Styling | CSS (single stylesheet) |
+| Serving | `npx serve` (static file server) |
+| Storage | LocalStorage (save games) |
 
 ---
 
 ## 2. Current State
 
 ### Active Work
-<!-- What's being worked on right now? -->
-- [ ] [Current feature/task 1]
-- [ ] [Current feature/task 2]
+- [x] v0.1.0 "Unfrozen" - First playable version
+- [x] 3 maps: Vault 42, Dustbowl Settlement, The Wastes
+- [x] Tutorial quest chain (Wake-Up Call, Fresh Air)
+- [x] Core systems: movement, combat, dialog, quests, inventory, save/load
+- [ ] Additional quests and content beyond starter areas
+- [ ] Expanded wasteland map areas
 
 ### Recent Changes
-<!-- What changed recently that AI should know about? -->
-- [Date]: [Change description]
-- [Date]: [Change description]
+- 2026-02-09: Initial commit with v0.1.0 "Unfrozen" first playable release
+- 2026-02-09: Implemented W.A.S.T.E.D. attribute system, turn-based combat, branching dialog trees
+- 2026-02-09: 6 quests (3 main, 3 side), 6 NPCs, 3 enemy types
 
 ### Known Issues
-<!-- Problems AI should be aware of -->
-- [Issue 1]: [Brief description]
-- [Issue 2]: [Brief description]
+
+**Critical:**
+- HUD HP color is red at >= 50% health (should be green) -- UIManager.js:254
+- Buff consumable effects are permanent (message says "temporarily") -- InventorySystem.js:119
+- Save/load loses entity states across maps (killed enemies respawn) -- MapSystem.js:156, Game.js:572
+- FOV only checks ground layer (player can see through closed doors) -- Game.js:506
+- Pathfinding only checks ground layer (routes through object-layer walls) -- Game.js:249
+- Camera snaps on load (loadMap repositions before save data restores position) -- Game.js:587
+
+**Moderate:**
+- Enemies walk through walls during combat movement -- CombatSystem.js:226
+- MAP button and M hotkey have no backing panel implementation
+- Settings button on main menu has no handler
+- Doctor's Orders quest requires talking to Doc Feelgood again after starting
+- Weapons have infinite ammo (ammoType property unused)
+- Per-weapon AP costs ignored (global constants used instead)
+
+**Minor:**
+- Dead variables in Renderer._dimColor
+- MAX_SAVES constant unused, save slots unlimited
+- Tab key prevented but unused
+- Combat turn order calculated but not used (all enemies act simultaneously)
 
 ---
 
 ## 3. Key Concepts
 
 ### Domain Model
-<!-- Core entities and their relationships -->
 ```
-[User] ──1:N── [Account] ──1:N── [Resource]
+[Game] ──owns── [Player] ──has── [Inventory]
+  │                │                  │
+  ├─[MapSystem]    ├─[Attributes]     └─[Items]
+  ├─[CombatSystem] ├─[Skills]
+  ├─[DialogSystem] └─[Position]
+  ├─[QuestSystem]
+  └─[SaveSystem]
+
+[Map] ──contains── [Entities] (NPCs, Enemies, Containers)
+  │
+  ├─[GroundGrid] (base64-encoded tile layers)
+  ├─[ObjectGrid]
+  ├─[Spawns]
+  └─[Exits] ──link to── [Other Maps]
 ```
 
-### Bounded Contexts
-<!-- If using DDD, list bounded contexts -->
-| Context | Responsibility | Key Entities |
-|---------|---------------|--------------|
-| [Context 1] | [What it handles] | [Entities] |
+### Game Systems
+| System | Responsibility | Key Data |
+|--------|---------------|----------|
+| MapSystem | Map loading, tile lookups, entity placement | Maps, tile grids, exits |
+| CharacterSystem | Attributes, skills, level-up, derived stats | W.A.S.T.E.D. attributes |
+| CombatSystem | Turn-based combat, hit/miss, damage | AP costs, accuracy, initiative |
+| DialogSystem | Branching conversations, skill checks | Dialog trees, conditions, effects |
+| QuestSystem | Quest tracking, objective completion | Quest stages, objectives, rewards |
+| InventorySystem | Item management, equip/use | Items, weight, equipment slots |
+| SaveSystem | Save/load to LocalStorage | Full game state serialization |
 
 ### Critical Paths
-<!-- Most important user journeys -->
-1. **[Path Name]**: [Step 1] → [Step 2] → [Step 3]
-2. **[Path Name]**: [Step 1] → [Step 2] → [Step 3]
+1. **New Game**: Main Menu -> Character Creation (W.A.S.T.E.D.) -> Vault 42 -> Tutorial Quest
+2. **Exploration**: Move (click/WASD) -> FOV update -> Interact (entities/tiles) -> Map exits
+3. **Combat**: Encounter hostile -> Turn-based (attack/shoot/item/flee) -> XP/Loot -> Return to exploration
+4. **Dialog**: Interact with NPC -> Dialog tree -> Skill checks -> Effects (quests, flags, items)
 
 ---
 
@@ -88,29 +128,63 @@
 ### Entry Points
 | Purpose | Location |
 |---------|----------|
-| Application start | `src/index.ts` |
-| API routes | `src/api/routes/` |
-| Main business logic | `src/services/` |
-| Configuration | `src/config/` |
+| HTML shell | `src/index.html` |
+| JS entry point | `src/js/main.js` |
+| Game engine | `src/js/engine/Game.js` |
+| Stylesheet | `src/css/game.css` |
 
 ### Key Files
-<!-- Files AI should prioritize reading -->
 ```
 src/
-├── index.ts              # Application entry
-├── config/index.ts       # Configuration
-├── services/
-│   └── [core].service.ts # Core business logic
-└── models/
-    └── [main].model.ts   # Main domain model
+├── index.html                # HTML shell with all UI panels
+├── css/
+│   └── game.css              # All styles (retro terminal theme)
+└── js/
+    ├── main.js               # Entry: init, event wiring, game loop start
+    ├── core/
+    │   ├── constants.js      # All enums, tile defs, W.A.S.T.E.D. attributes
+    │   ├── EventBus.js       # Singleton pub/sub event system
+    │   └── utils.js          # Base64 codec, A* pathfinding, FOV, seeded RNG
+    ├── engine/
+    │   ├── Game.js           # Main game class: state, loop, input handling
+    │   ├── Camera.js         # Viewport camera (follow player, screen-to-tile)
+    │   ├── Renderer.js       # Canvas tile renderer, fog of war, entity drawing
+    │   └── Input.js          # Keyboard + mouse input manager
+    ├── systems/
+    │   ├── MapSystem.js      # Map loading, tile lookup, entity management
+    │   ├── CharacterSystem.js # Attributes, skills, derived stats, level-up
+    │   ├── CombatSystem.js   # Turn-based combat logic
+    │   ├── DialogSystem.js   # Branching dialog with skill checks
+    │   ├── QuestSystem.js    # Quest state tracking, objectives
+    │   ├── InventorySystem.js # Items, equipment, weight
+    │   └── SaveSystem.js     # LocalStorage save/load
+    ├── ui/
+    │   └── UIManager.js      # DOM-based UI panels, HUD, menus
+    └── data/
+        ├── maps.js           # Map definitions (text -> base64 encoded)
+        ├── entities.js       # NPC, enemy, container definitions
+        ├── items.js          # Weapon, armor, consumable definitions
+        ├── quests.js         # Quest stages, objectives, rewards
+        └── dialogs.js        # Branching dialog trees
 ```
 
 ### Module Map
-<!-- How major modules relate -->
 ```
-[API Layer] → [Service Layer] → [Repository Layer] → [Database]
-     ↓              ↓                  ↓
-[Validators]   [Domain Models]   [Query Builders]
+[index.html] loads [main.js]
+        │
+        ▼
+[Game] ──creates──► [Camera, Renderer, Input]
+  │
+  ├──creates──► [MapSystem] ──reads──► [data/maps.js, data/entities.js]
+  ├──creates──► [CharacterSystem] ──reads──► [core/constants.js]
+  ├──creates──► [CombatSystem]
+  ├──creates──► [DialogSystem] ──reads──► [data/dialogs.js]
+  ├──creates──► [QuestSystem] ──reads──► [data/quests.js]
+  ├──creates──► [InventorySystem] ──reads──► [data/items.js]
+  └──creates──► [SaveSystem]
+
+[UIManager] ──reads──► [Game] state
+[EventBus] ◄──used by──► all systems (decoupled communication)
 ```
 
 ---
@@ -118,25 +192,25 @@ src/
 ## 5. Development Rules
 
 ### Must Follow
-<!-- Non-negotiable rules -->
-1. **All code must have tests** - No exceptions for business logic
-2. **Use existing patterns** - Check PATTERNS.md before creating new ones
-3. **No secrets in code** - Use environment variables
+1. **No build step** - Everything runs directly in the browser via ES modules
+2. **No frameworks** - Vanilla JS only; no React, no jQuery, no bundlers
+3. **Data-driven content** - Maps, entities, items, quests, dialogs are all JS data files
 4. **Spec before code** - Features require approved specs
+5. **Event-driven communication** - Systems communicate via EventBus, not direct calls
 
 ### Prefer
-<!-- Strong preferences -->
 1. Composition over inheritance
-2. Explicit over implicit
-3. Small functions (< 20 lines)
-4. Descriptive names over comments
+2. Data files for content, code files for logic
+3. Small, focused system classes
+4. Constants defined in `constants.js`, not magic numbers
+5. Humorous descriptions in Infocom style for all game content
 
 ### Avoid
-<!-- Anti-patterns and practices to avoid -->
-1. God classes/functions
-2. Deep nesting (> 3 levels)
-3. Magic numbers/strings
-4. Mutable global state
+1. External dependencies or npm packages at runtime
+2. Direct DOM manipulation outside UIManager
+3. Systems directly referencing each other (use EventBus)
+4. Hardcoded tile IDs (use Tiles enum from constants.js)
+5. Breaking the retro terminal aesthetic
 
 ---
 
@@ -145,17 +219,13 @@ src/
 ### Coverage Expectations
 | Type | Target | Focus |
 |------|--------|-------|
-| Unit | 80% | Services, utilities |
-| Integration | Key paths | API endpoints |
-| E2E | Critical flows | User journeys |
+| Manual | Primary | Play-through testing of quests and combat |
+| Unit | Future | Core utilities (pathfinding, FOV, base64 codec) |
+| E2E | Future | Automated browser testing of game flows |
 
-### Test Locations
-```
-tests/
-├── unit/           # src/__tests__/ also acceptable
-├── integration/
-└── e2e/
-```
+### Test Approach
+Currently tested manually via browser. The game can be inspected at runtime
+via `window.game` and `window.eventBus` exposed in the console.
 
 ---
 
@@ -164,26 +234,21 @@ tests/
 ### Prerequisites
 ```bash
 # Required tools
-[tool1] >= [version]
-[tool2] >= [version]
+Node.js >= 18  # Only needed for the static file server (npx serve)
+A modern browser  # Chrome, Firefox, Edge, Safari
 ```
 
 ### Quick Start
 ```bash
-# Clone and setup
-git clone [repo-url]
-cd [project]
-[install command]
-[setup command]
-[run command]
+# Clone and run
+git clone <repo-url>
+cd just-in-time
+npm run dev
+# Opens at http://localhost:8080
 ```
 
 ### Environment Variables
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | Database connection string |
-| `API_KEY` | Yes | External service API key |
-| `DEBUG` | No | Enable debug logging |
+No environment variables required. The game is entirely client-side with no backend.
 
 ---
 
@@ -206,11 +271,11 @@ cd [project]
 3. **Verify assumptions** - Read actual implementation
 
 ### Forbidden Actions
-<!-- Things AI should never do -->
-- Delete or modify test files without explicit request
-- Change security-related code without review
-- Modify configuration files without confirmation
-- Add dependencies without discussion
+- Do not introduce build steps, transpilers, or bundlers
+- Do not add npm runtime dependencies
+- Do not break the ES module import/export structure
+- Do not change tile IDs or map encoding without updating all references
+- Do not modify save game format without migration support
 
 ---
 
@@ -222,9 +287,9 @@ cd [project]
 - [decisions/](decisions/) - Architecture Decision Records
 
 ### External
-- [Design System]([link])
-- [API Documentation]([link])
-- [Runbook]([link])
+- Inspired by Fallout 1 & 2 (Interplay/Black Isle Studios)
+- Infocom text adventure humor style
+- ASCII/tile-based roguelike rendering traditions
 
 ---
 
@@ -232,9 +297,7 @@ cd [project]
 
 | Role | Contact | When to Escalate |
 |------|---------|-----------------|
-| Tech Lead | @[username] | Architecture decisions |
-| Product | @[username] | Requirement clarifications |
-| Security | @[username] | Security concerns |
+| Developer | Jerry | All decisions |
 
 ---
 
@@ -242,9 +305,9 @@ cd [project]
 
 | Field | Value |
 |-------|-------|
-| Last Updated | YYYY-MM-DD |
-| Update Frequency | Weekly / After major changes |
-| Owner | [Team/Person] |
+| Last Updated | 2026-02-09 |
+| Update Frequency | After each version release |
+| Owner | Jerry |
 
 ### Update Checklist
 When updating this document:

@@ -2,8 +2,8 @@
   "$schema": "https://claude.ai/schemas/claude-settings.json",
   "version": "1.0",
   "project": {
-    "name": "Enterprise Spec-Based Development Template",
-    "description": "Language-agnostic repository template for spec-driven development with Claude Code integration"
+    "name": "Just In Time",
+    "description": "Post-apocalyptic browser RPG built with vanilla JavaScript and HTML5 Canvas"
   },
   "preferences": {
     "codeStyle": {
@@ -12,9 +12,9 @@
       "followProjectConventions": true
     },
     "testing": {
-      "requireTests": true,
-      "testLocation": "colocated",
-      "coverageThreshold": 80
+      "requireTests": false,
+      "testLocation": "N/A",
+      "coverageThreshold": 0
     },
     "documentation": {
       "updateOnChange": true,
@@ -31,18 +31,12 @@
   },
   "ignorePaths": [
     "node_modules",
-    "dist",
-    "build",
     ".git",
-    "coverage",
-    "*.log",
-    ".env*"
+    "*.log"
   ],
   "contextFiles": [
     ".ai/CONTEXT.md",
     ".ai/architecture/PATTERNS.md",
-    "README.md",
-    "specs.config.yaml",
-    "CONTRIBUTING.md"
+    "specs.config.yaml"
   ]
 }

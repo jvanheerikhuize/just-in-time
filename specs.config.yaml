@@ -49,24 +49,65 @@ settings:
 # Specification registry
 # Add specs here to track them centrally and enable batch processing
 specifications:
-  # Example entry (uncomment and modify):
-  # - id: "FEAT-0001"
-  #   file: "specs/features/FEAT-0001-user-authentication.yaml"
-  #   status: "approved"  # draft | review | approved | implemented | deprecated
-  #   auto_implement: true  # Set to true to include in scheduled processing
-  #   priority: "high"
-  #   assignee: "username"
-  #   target_version: "1.0.0"
-  #   notes: "Core authentication feature"
-  #   labels:
-  #     - "authentication"
-  #     - "security"
+  - id: "FEAT-0001"
+    file: "specs/features/FEAT-0001-trading-system.yaml"
+    status: "approved"
+    auto_implement: true
+    priority: "high"
+    target_version: "1.1.0"
+    notes: "NPC trading and barter system with Rusty and Patches"
+    labels:
+      - "gameplay"
+      - "economy"
+      - "npc"
 
-  # - id: "API-0001"
-  #   file: "specs/api/users-api.openapi.yaml"
-  #   status: "approved"
-  #   auto_implement: true
-  #   priority: "high"
+  - id: "FEAT-0002"
+    file: "specs/features/FEAT-0002-water-treatment-plant.yaml"
+    status: "approved"
+    auto_implement: true
+    priority: "high"
+    target_version: "1.1.0"
+    notes: "Main quest dungeon with boss encounter and water chip"
+    labels:
+      - "map"
+      - "dungeon"
+      - "main-quest"
+      - "combat"
+
+  - id: "FEAT-0003"
+    file: "specs/features/FEAT-0003-level-up-screen.yaml"
+    status: "approved"
+    auto_implement: true
+    priority: "medium"
+    target_version: "1.1.0"
+    notes: "Skill point allocation UI and perk selection on level up"
+    labels:
+      - "ui"
+      - "character"
+      - "progression"
+
+  - id: "FEAT-0004"
+    file: "specs/features/FEAT-0004-raider-camp.yaml"
+    status: "draft"
+    auto_implement: false
+    priority: "medium"
+    target_version: "1.2.0"
+    notes: "Side quest area with multiple approach paths (combat, stealth, speech)"
+    labels:
+      - "map"
+      - "combat"
+      - "side-quest"
+
+  - id: "FEAT-0005"
+    file: "specs/features/FEAT-0005-sound-system.yaml"
+    status: "draft"
+    auto_implement: false
+    priority: "low"
+    target_version: "1.2.0"
+    notes: "Ambient sounds, combat SFX, UI feedback, and optional music"
+    labels:
+      - "audio"
+      - "polish"
 
 # Spec categories for organization
 categories:

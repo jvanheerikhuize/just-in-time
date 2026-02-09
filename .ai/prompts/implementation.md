@@ -1,46 +1,18 @@
-# Implementation Prompt Template
+# Implementation Prompt
 
-> Use this prompt when asking AI to implement a feature from a specification.
-
----
-
-## Prompt
+Use when implementing a feature spec.
 
 ```
-I need you to implement a feature based on the following specification.
+Implement the following spec for Just In Time.
 
-## Project Context
-- Read `.ai/CONTEXT.md` for project overview
-- Follow patterns in `.ai/architecture/PATTERNS.md`
-- Check existing code in `[relevant directory]` for conventions
+Context: .ai/CONTEXT.md
+Patterns: .ai/architecture/PATTERNS.md
+Spec: [paste spec or reference file]
 
-## Specification
-[Paste the spec YAML here, or reference the file]
-
-## Requirements
-1. Implement ALL acceptance criteria - no partial implementations
-2. Follow existing code patterns exactly
-3. Include tests for each acceptance criterion
+Requirements:
+1. Implement ALL acceptance criteria
+2. Follow existing code patterns (vanilla JS, ES modules, EventBus)
+3. Add content to data/ files, logic to systems/ files
 4. Do not add features not in the spec
-5. Update any necessary documentation
-
-## Expected Output
-1. Implementation code with clear file paths
-2. Test code with clear file paths
-3. Brief explanation of key decisions
-4. Any clarifying questions before proceeding
-
-## Questions Before Starting
-- Do you need any clarification on the spec?
-- Are there existing patterns you're unsure about?
-- Any potential conflicts with existing code?
+5. Write Infocom-style humor for all game text
 ```
-
----
-
-## Usage Notes
-
-1. **Always include project context** - Don't assume AI remembers previous conversations
-2. **Be specific about output format** - Request file paths, test locations
-3. **Encourage questions** - Better to clarify upfront than refactor later
-4. **Reference patterns** - Point to PATTERNS.md for consistency

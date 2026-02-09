@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Just In Time - A Post-Apocalyptic RPG</title>
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen active">
+      <div class="menu-title">
+        <pre class="title-art">
+     ╦╦ ╦╔═╗╔╦╗  ╦╔╗╔  ╔╦╗╦╔╦╗╔═╗
+     ║║ ║╚═╗ ║   ║║║║   ║ ║║║║║╠═
+    ╚╝╚═╝╚═╝ ╩   ╩╝╚╝   ╩ ╩╩ ╩╚═╝
+        </pre>
+        <p class="subtitle">A Post-Apocalyptic Adventure</p>
+        <p class="version">v0.1.0 - "Unfrozen"</p>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-new-game" class="menu-btn">NEW GAME</button>
+        <button id="btn-load-game" class="menu-btn" disabled>LOAD GAME</button>
+        <button id="btn-settings" class="menu-btn">SETTINGS</button>
+      </div>
+      <p class="menu-footer">War. War never changes. But game engines do.</p>
+    </div>
+
+    <!-- Character Creation Screen -->
+    <div id="char-creation" class="screen">
+      <h2 class="screen-title">VAULT-TEC PERSONNEL FILE</h2>
+      <div class="creation-content">
+        <div class="creation-left">
+          <label class="field-label">NAME:</label>
+          <input type="text" id="char-name" maxlength="20" value="Wanderer" class="text-input">
+
+          <h3 class="section-label">W.A.S.T.E.D. ATTRIBUTES</h3>
+          <p class="points-remaining">Points remaining: <span id="points-left">5</span></p>
+          <div id="attribute-sliders"></div>
+        </div>
+        <div class="creation-right">
+          <h3 class="section-label">DERIVED STATS</h3>
+          <div id="derived-stats"></div>
+          <h3 class="section-label">SKILLS</h3>
+          <div id="skill-list"></div>
+        </div>
+      </div>
+      <div class="creation-buttons">
+        <button id="btn-back-menu" class="menu-btn">BACK</button>
+        <button id="btn-start-game" class="menu-btn primary">ENTER THE WASTELAND</button>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+      <div id="game-top-bar">
+        <div id="player-stats-bar">
+          <span id="stat-hp" class="stat-display">HP: 100/100</span>
+          <span id="stat-ap" class="stat-display">AP: 10/10</span>
+          <span id="stat-caps" class="stat-display">Caps: 0</span>
+          <span id="stat-level" class="stat-display">Lvl: 1</span>
+          <span id="stat-xp" class="stat-display">XP: 0</span>
+        </div>
+        <div id="location-name">Vault 42</div>
+      </div>
+
+      <div id="game-viewport-container">
+        <canvas id="game-canvas" width="960" height="576"></canvas>
+
+        <!-- Overlay panels rendered on top of canvas -->
+        <div id="dialog-overlay" class="overlay hidden">
+          <div id="dialog-box">
+            <div id="dialog-speaker"></div>
+            <div id="dialog-text"></div>
+            <div id="dialog-responses"></div>
+          </div>
+        </div>
+
+        <div id="combat-overlay" class="overlay hidden">
+          <div id="combat-info">
+            <div id="combat-status"></div>
+            <div id="combat-actions">
+              <button class="combat-btn" data-action="attack">ATTACK</button>
+              <button class="combat-btn" data-action="shoot">SHOOT</button>
+              <button class="combat-btn" data-action="item">ITEM</button>
+              <button class="combat-btn" data-action="flee">FLEE</button>
+              <button class="combat-btn" data-action="end-turn">END TURN</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="message-log">
+        <div id="message-log-content"></div>
+      </div>
+
+      <div id="game-bottom-bar">
+        <button class="action-btn" data-panel="inventory" title="Inventory (I)">INV</button>
+        <button class="action-btn" data-panel="character" title="Character (C)">CHAR</button>
+        <button class="action-btn" data-panel="quests" title="Quests (Q)">QUEST</button>
+        <button class="action-btn" data-panel="map" title="Map (M)">MAP</button>
+        <button class="action-btn" data-panel="save" title="Save/Load (F5)">SAVE</button>
+      </div>
+    </div>
+
+    <!-- Side Panels (slide in over game) -->
+    <div id="inventory-panel" class="side-panel hidden">
+      <div class="panel-header">
+        <h2>INVENTORY</h2>
+        <span id="carry-weight">0/100 lbs</span>
+        <button class="panel-close">&times;</button>
+      </div>
+      <div class="panel-content">
+        <div id="equipped-items">
+          <h3>EQUIPPED</h3>
+          <div id="equip-weapon" class="equip-slot">Weapon: None</div>
+          <div id="equip-armor" class="equip-slot">Armor: None</div>
+        </div>
+        <div id="inventory-list"></div>
+      </div>
+    </div>
+
+    <div id="character-panel" class="side-panel hidden">
+      <div class="panel-header">
+        <h2>CHARACTER</h2>
+        <button class="panel-close">&times;</button>
+      </div>
+      <div class="panel-content">
+        <div id="char-info"></div>
+        <div id="char-attributes"></div>
+        <div id="char-skills"></div>
+      </div>
+    </div>
+
+    <div id="quests-panel" class="side-panel hidden">
+      <div class="panel-header">
+        <h2>QUESTS</h2>
+        <button class="panel-close">&times;</button>
+      </div>
+      <div class="panel-content">
+        <div id="active-quests"></div>
+        <div id="completed-quests"></div>
+      </div>
+    </div>
+
+    <div id="save-panel" class="side-panel hidden">
+      <div class="panel-header">
+        <h2>SAVE / LOAD</h2>
+        <button class="panel-close">&times;</button>
+      </div>
+      <div class="panel-content">
+        <button id="btn-save" class="menu-btn">SAVE GAME</button>
+        <button id="btn-load" class="menu-btn">LOAD GAME</button>
+        <button id="btn-quit" class="menu-btn">QUIT TO MENU</button>
+        <div id="save-slots"></div>
+      </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="hidden"></div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

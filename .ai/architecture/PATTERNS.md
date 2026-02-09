@@ -1,462 +1,226 @@
 # Code Patterns & Conventions
 
-> **For AI Assistants**: Follow these patterns when generating or modifying code. Consistency is critical.
-
-## Document Info
+> Follow these patterns when generating or modifying code.
 
 | Field | Value |
 |-------|-------|
-| Version | 1.0.0 |
-| Last Updated | YYYY-MM-DD |
+| Version | 0.1.0 |
+| Last Updated | 2026-02-09 |
 
 ---
 
 ## 1. General Principles
 
-### 1.1 Core Values
-1. **Clarity over cleverness** - Code should be readable by humans first
-2. **Explicit over implicit** - Make behavior obvious
-3. **Composition over inheritance** - Prefer small, composable units
-4. **Fail fast** - Validate early, fail with clear errors
-
-### 1.2 SOLID Principles
-- **S**ingle Responsibility - One reason to change
-- **O**pen/Closed - Open for extension, closed for modification
-- **L**iskov Substitution - Subtypes must be substitutable
-- **I**nterface Segregation - Small, focused interfaces
-- **D**ependency Inversion - Depend on abstractions
+1. **Vanilla JS only** - No frameworks, no TypeScript, no build tools
+2. **ES Modules** - Native browser `import`/`export`, no bundler
+3. **Data-driven content** - Game content lives in `data/*.js` as plain objects
+4. **Event-driven communication** - Systems talk via EventBus, not direct references
+5. **Composition over inheritance** - Game owns systems, systems don't inherit from a base
 
 ---
 
 ## 2. Naming Conventions
 
-### 2.1 General Rules
-
 | Element | Convention | Example |
 |---------|------------|---------|
-| Files | kebab-case | `user-service.ts` |
-| Classes | PascalCase | `UserService` |
-| Functions | camelCase | `getUserById` |
-| Constants | SCREAMING_SNAKE | `MAX_RETRIES` |
-| Variables | camelCase | `userCount` |
-| Interfaces | PascalCase (no I prefix) | `UserRepository` |
-| Types | PascalCase | `UserCreateInput` |
-| Enums | PascalCase | `UserStatus.Active` |
-
-### 2.2 Naming Patterns
-
-```
-# Functions - verb + noun
-createUser(), getUserById(), deleteExpiredSessions()
-
-# Booleans - is/has/can/should prefix
-isActive, hasPermission, canEdit, shouldRetry
-
-# Collections - plural nouns
-users, pendingOrders, activeConnections
-
-# Handlers - on + event
-onUserCreated, onPaymentReceived
-
-# Factories - create + noun
-createLogger(), createDatabaseConnection()
-```
-
-### 2.3 Domain Language
-<!-- Define ubiquitous language for your domain -->
-
-| Term | Definition | Usage |
-|------|------------|-------|
-| [Term] | [Definition] | [How to use in code] |
+| Files | PascalCase (classes), camelCase (data) | `Game.js`, `maps.js` |
+| Classes | PascalCase | `CombatSystem`, `UIManager` |
+| Functions/methods | camelCase | `loadMap()`, `updateHUD()` |
+| Constants/enums | SCREAMING_SNAKE | `MAX_HP`, `Tiles.WALL_STONE` |
+| Private methods | underscore prefix | `_tryMovePlayer()`, `_dimColor()` |
+| Event names | colon-separated | `'player:move'`, `'combat:hit'` |
+| Data definitions | SCREAMING_SNAKE + `_DEFS` | `ENTITY_DEFS`, `ITEM_DEFS` |
+| Tile IDs | `Tiles.CATEGORY_NAME` | `Tiles.FLOOR_STONE`, `Tiles.DOOR_CLOSED` |
 
 ---
 
 ## 3. File Organization
 
-### 3.1 Directory Structure
-
+### Directory Structure
 ```
-src/
-├── api/                    # HTTP layer
-│   ├── routes/            # Route definitions
-│   ├── middleware/        # Express/Koa middleware
-│   ├── validators/        # Request validation
-│   └── transformers/      # Response transformation
-│
-├── services/              # Business logic
-│   ├── user/             # Feature-based organization
-│   │   ├── user.service.ts
-│   │   ├── user.service.test.ts
-│   │   └── index.ts
-│   └── ...
-│
-├── repositories/          # Data access
-│   ├── user.repository.ts
-│   └── ...
-│
-├── models/               # Domain models
-│   ├── user.model.ts
-│   └── ...
-│
-├── lib/                  # Shared libraries
-│   ├── database/
-│   ├── cache/
-│   └── logger/
-│
-├── config/               # Configuration
-│   └── index.ts
-│
-└── types/                # Type definitions
-    └── index.ts
+src/js/
+├── main.js               # Entry: creates Game + UIManager, wires events
+├── core/                  # Shared foundation (no game logic)
+│   ├── constants.js       # All enums, tile defs, attribute config
+│   ├── EventBus.js        # Singleton pub/sub
+│   └── utils.js           # A* pathfinding, FOV, base64, seeded RNG
+├── engine/                # Game loop and rendering
+│   ├── Game.js            # Main game class, state machine, update/render
+│   ├── Camera.js          # Viewport management
+│   ├── Renderer.js        # Canvas tile renderer
+│   └── Input.js           # Keyboard + mouse input
+├── systems/               # Game logic (stateful)
+│   ├── MapSystem.js       # Map loading, tile lookup, entity management
+│   ├── CharacterSystem.js # Attributes, skills, derived stats, level-up
+│   ├── CombatSystem.js    # Turn-based combat, initiative, damage
+│   ├── DialogSystem.js    # Branching dialog with conditions/effects
+│   ├── QuestSystem.js     # Quest stages, objectives, rewards
+│   ├── InventorySystem.js # Items, equipment, weight
+│   └── SaveSystem.js      # LocalStorage save/load
+├── ui/                    # DOM-based UI
+│   └── UIManager.js
+└── data/                  # Content definitions (pure data, no logic)
+    ├── maps.js
+    ├── entities.js
+    ├── items.js
+    ├── quests.js
+    └── dialogs.js
 ```
 
-### 3.2 File Contents Order
+### File Contents Order
+```javascript
+// 1. Imports (core first, then data)
+import { Tiles, WASTED_ATTRIBUTES } from '../core/constants.js';
+import { eventBus, Events } from '../core/EventBus.js';
 
-```typescript
-// 1. Imports (external, then internal)
-import { external } from 'external-lib';
-import { internal } from '@/lib/internal';
+// 2. Module-level constants
+const SOME_CONSTANT = 42;
 
-// 2. Types/Interfaces
-interface UserInput { ... }
-
-// 3. Constants
-const MAX_RETRIES = 3;
-
-// 4. Main export (class or function)
-export class UserService { ... }
-
-// 5. Helper functions (private)
-function validateInput() { ... }
+// 3. Exported class
+export class SystemName {
+  constructor(game) {
+    this.game = game;
+  }
+  // Public methods first, private (_prefixed) methods last
+}
 ```
 
 ---
 
 ## 4. Code Patterns
 
-### 4.1 Error Handling
-
-**Pattern: Result Type**
-```typescript
-type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
-
-// Usage
-function getUser(id: string): Result<User> {
-  const user = db.find(id);
-  if (!user) {
-    return { success: false, error: new NotFoundError('User not found') };
+### 4.1 System Pattern
+Every game system receives the Game reference:
+```javascript
+export class FooSystem {
+  constructor(game) {
+    this.game = game;
   }
-  return { success: true, data: user };
-}
-
-// Handling
-const result = getUser('123');
-if (!result.success) {
-  logger.error(result.error);
-  return;
-}
-const user = result.data;
-```
-
-**Pattern: Custom Error Classes**
-```typescript
-class AppError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number = 500,
-    public isOperational: boolean = true
-  ) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
-
-class NotFoundError extends AppError {
-  constructor(resource: string) {
-    super(`${resource} not found`, 'NOT_FOUND', 404);
-  }
-}
-
-class ValidationError extends AppError {
-  constructor(message: string) {
-    super(message, 'VALIDATION_ERROR', 400);
-  }
+  doSomething() { ... }
+  _internalHelper() { ... }
 }
 ```
+Systems are created in `Game.constructor()` and accessed via `this.game.fooSystem`.
 
-### 4.2 Dependency Injection
+### 4.2 EventBus Pattern
+Systems communicate through events, never direct method calls between systems:
+```javascript
+// Publishing
+eventBus.emit(Events.PLAYER_MOVE, x, y);
 
-```typescript
-// Define interface
-interface UserRepository {
-  findById(id: string): Promise<User | null>;
-  save(user: User): Promise<User>;
-}
+// Subscribing
+eventBus.on(Events.PLAYER_MOVE, () => ui.updateHUD());
+```
+Events are string constants defined in `EventBus.js`.
 
-// Service depends on abstraction
-class UserService {
-  constructor(private userRepo: UserRepository) {}
+### 4.3 Data-Driven Content
+All game content is exported object literals:
+```javascript
+export const ITEM_DEFS = {
+  stimpak: {
+    id: 'stimpak',
+    name: 'Stimpak',
+    type: 'consumable',
+    effect: { type: 'heal', value: 30 },
+    weight: 0.5,
+    value: 25,
+    description: 'Heals 30 HP.',
+  },
+};
+```
+Content files have no logic, only data.
 
-  async getUser(id: string): Promise<User> {
-    const user = await this.userRepo.findById(id);
-    if (!user) throw new NotFoundError('User');
-    return user;
-  }
-}
+### 4.4 Map Encoding
+Maps are authored as ASCII text, encoded to base64:
+```javascript
+const mapText = `
+##########
+#........#
+#.@......#
+##########
+`;
 
-// Inject implementation
-const userService = new UserService(new PostgresUserRepository(db));
+export const MAP_DEFS = {
+  map_id: {
+    ...encodeMap(mapText),
+    name: 'Map Name',
+    spawns: { default: { x: 2, y: 2 } },
+    exits: [...],
+    entities: [...],
+  },
+};
+```
+`CHAR_TO_TILE` in `constants.js` maps ASCII chars to tile IDs.
+
+### 4.5 Dialog Trees
+```javascript
+export const DIALOG_DEFS = {
+  npc_name: {
+    startNode: 'greeting',
+    nodes: {
+      greeting: {
+        speaker: 'NPC Name',
+        text: 'Dialog text.',
+        responses: [
+          { text: 'Response', nextNode: 'other_node' },
+          { text: '[Wits 7+] Skill check',
+            condition: { type: 'attribute', attr: 'wits', min: 7 },
+            nextNode: 'smart_response' },
+        ],
+      },
+    },
+  },
+};
 ```
 
-### 4.3 Repository Pattern
-
-```typescript
-interface Repository<T, ID> {
-  findById(id: ID): Promise<T | null>;
-  findAll(filter?: Partial<T>): Promise<T[]>;
-  save(entity: T): Promise<T>;
-  delete(id: ID): Promise<void>;
-}
-
-class UserRepository implements Repository<User, string> {
-  constructor(private db: Database) {}
-
-  async findById(id: string): Promise<User | null> {
-    const row = await this.db.query('SELECT * FROM users WHERE id = $1', [id]);
-    return row ? this.toEntity(row) : null;
-  }
-
-  private toEntity(row: any): User {
-    return new User(row.id, row.email, row.name);
-  }
-}
+### 4.6 Quest Definitions
+```javascript
+export const QUEST_DEFS = {
+  quest_id: {
+    id: 'quest_id',
+    title: 'Quest Title',
+    stages: {
+      start: {
+        objectives: [
+          { type: 'talk', target: 'npc_id', description: 'Talk to NPC' },
+        ],
+        nextStage: 'stage_2',
+      },
+    },
+    rewards: { xp: 100, caps: 50 },
+  },
+};
 ```
+Objective types: `go`, `talk`, `kill`, `fetch`, `use`.
 
-### 4.4 Service Layer Pattern
+---
 
-```typescript
-class OrderService {
-  constructor(
-    private orderRepo: OrderRepository,
-    private paymentService: PaymentService,
-    private notificationService: NotificationService
-  ) {}
+## 5. UI Pattern
 
-  async createOrder(input: CreateOrderInput): Promise<Order> {
-    // 1. Validate
-    this.validateInput(input);
-
-    // 2. Business logic
-    const order = Order.create(input);
-
-    // 3. Persist
-    const savedOrder = await this.orderRepo.save(order);
-
-    // 4. Side effects
-    await this.notificationService.sendOrderConfirmation(savedOrder);
-
-    return savedOrder;
-  }
-}
-```
-
-### 4.5 Factory Pattern
-
-```typescript
-class NotificationFactory {
-  static create(type: NotificationType, config: NotificationConfig): Notification {
-    switch (type) {
-      case 'email':
-        return new EmailNotification(config);
-      case 'sms':
-        return new SMSNotification(config);
-      case 'push':
-        return new PushNotification(config);
-      default:
-        throw new Error(`Unknown notification type: ${type}`);
-    }
-  }
-}
+All DOM interaction goes through `UIManager`. No other file touches the DOM.
+```javascript
+this.hpBar = document.getElementById('hp-bar');
+eventBus.on(Events.COMBAT_HIT, () => this.updateHUD());
 ```
 
 ---
 
-## 5. API Patterns
+## 6. Anti-Patterns
 
-### 5.1 REST Conventions
-
-| Action | Method | Path | Response |
-|--------|--------|------|----------|
-| List | GET | `/users` | 200 + array |
-| Get | GET | `/users/:id` | 200 + object |
-| Create | POST | `/users` | 201 + object |
-| Update | PUT | `/users/:id` | 200 + object |
-| Partial Update | PATCH | `/users/:id` | 200 + object |
-| Delete | DELETE | `/users/:id` | 204 |
-
-### 5.2 Response Format
-
-```json
-// Success
-{
-  "data": { ... },
-  "meta": {
-    "page": 1,
-    "limit": 20,
-    "total": 100
-  }
-}
-
-// Error
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid input",
-    "details": [
-      { "field": "email", "message": "Invalid email format" }
-    ]
-  }
-}
-```
-
-### 5.3 Controller Pattern
-
-```typescript
-class UserController {
-  constructor(private userService: UserService) {}
-
-  async getUser(req: Request, res: Response) {
-    const { id } = req.params;
-
-    const result = await this.userService.getUser(id);
-
-    if (!result.success) {
-      return res.status(404).json({ error: result.error });
-    }
-
-    return res.json({ data: result.data });
-  }
-}
-```
+| Don't | Do |
+|-------|-----|
+| Import frameworks or libraries | Use vanilla JS APIs |
+| Call system methods across systems | Use EventBus |
+| Put logic in data files | Keep data files pure data |
+| Touch DOM outside UIManager | Route all UI through UIManager |
+| Hardcode tile IDs or magic numbers | Use constants from `constants.js` |
+| Add a build step or transpiler | ES modules run directly in browser |
+| Create deep inheritance hierarchies | Use composition |
 
 ---
 
-## 6. Testing Patterns
-
-### 6.1 Test Organization
-
-```
-tests/
-├── unit/                  # Unit tests (isolated)
-│   └── services/
-│       └── user.service.test.ts
-├── integration/           # Integration tests (with deps)
-│   └── api/
-│       └── users.test.ts
-└── e2e/                   # End-to-end tests
-    └── user-flow.test.ts
-```
-
-### 6.2 Test Structure (AAA)
-
-```typescript
-describe('UserService', () => {
-  describe('getUser', () => {
-    it('should return user when found', async () => {
-      // Arrange
-      const mockUser = { id: '1', email: 'test@example.com' };
-      const mockRepo = { findById: jest.fn().mockResolvedValue(mockUser) };
-      const service = new UserService(mockRepo);
-
-      // Act
-      const result = await service.getUser('1');
-
-      // Assert
-      expect(result).toEqual(mockUser);
-      expect(mockRepo.findById).toHaveBeenCalledWith('1');
-    });
-
-    it('should throw NotFoundError when user not found', async () => {
-      // Arrange
-      const mockRepo = { findById: jest.fn().mockResolvedValue(null) };
-      const service = new UserService(mockRepo);
-
-      // Act & Assert
-      await expect(service.getUser('999')).rejects.toThrow(NotFoundError);
-    });
-  });
-});
-```
-
-### 6.3 Test Fixtures
-
-```typescript
-// fixtures/users.ts
-export const createTestUser = (overrides: Partial<User> = {}): User => ({
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-  createdAt: new Date('2024-01-01'),
-  ...overrides,
-});
-```
-
----
-
-## 7. Documentation Patterns
-
-### 7.1 Code Comments
-
-```typescript
-// DO: Explain WHY, not WHAT
-// Retry with exponential backoff to handle transient network failures
-const result = await retry(fetchData, { maxAttempts: 3 });
-
-// DON'T: State the obvious
-// Loop through users
-for (const user of users) { ... }
-```
-
-### 7.2 JSDoc for Public APIs
-
-```typescript
-/**
- * Creates a new user account.
- *
- * @param input - User creation data
- * @returns The created user
- * @throws {ValidationError} If input is invalid
- * @throws {ConflictError} If email already exists
- *
- * @example
- * const user = await userService.createUser({
- *   email: 'user@example.com',
- *   name: 'John Doe'
- * });
- */
-async createUser(input: CreateUserInput): Promise<User> { ... }
-```
-
----
-
-## 8. Anti-Patterns to Avoid
-
-| Anti-Pattern | Problem | Solution |
-|--------------|---------|----------|
-| God Class | Too many responsibilities | Split into focused services |
-| Magic Numbers | Unclear meaning | Use named constants |
-| Deep Nesting | Hard to read | Extract functions, early returns |
-| Shotgun Surgery | Changes spread everywhere | Improve cohesion |
-| Primitive Obsession | Primitives instead of objects | Create domain types |
-| Feature Envy | Method uses another class's data | Move method to that class |
-
----
-
-## 9. Revision History
+## Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0.0 | YYYY-MM-DD | [Name] | Initial version |
+| 0.1.0 | 2026-02-09 | Jerry | Initial version for Just In Time v0.1.0 |

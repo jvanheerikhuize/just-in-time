@@ -1,0 +1,204 @@
+# Feature Specification: Level Up Skill Point Allocation Screen
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0003"
+  title: "Level Up Skill Point Allocation Screen"
+  version: "1.0.0"
+  status: "approved"
+  priority: "medium"
+  author: "Game Design"
+  created_at: "2026-02-09"
+  updated_at: "2026-02-09"
+  tags:
+    - ui
+    - character
+    - progression
+    - skills
+    - perks
+
+description:
+  summary: |
+    A dedicated level-up screen that appears when the player gains a level,
+    allowing them to allocate earned skill points and select perks at
+    milestone levels.
+
+  problem_statement: |
+    When the player levels up, the CharacterSystem awards skill points
+    (stored as pendingSkillPoints) but there is no interface for the player
+    to allocate those points. The level-up event fires and a message is
+    displayed, but the player has no agency in how their character develops.
+    - Skill points accumulate with no way to spend them
+    - Player cannot specialize their build
+    - The W.A.S.T.E.D. attribute system's influence on skill points per
+      level (Wits/2 bonus) has no visible impact
+    - There is no perk system to reward milestone levels
+
+  proposed_solution: |
+    When the player levels up, a full-screen level-up interface appears
+    showing all 10 skills with their current values and the number of
+    available skill points. The player can allocate points to individual
+    skills, preview the resulting changes, and confirm their allocation.
+    Every 3 levels (3, 6, 9, 12, 15, 18), the player also selects a perk
+    from a curated list. Perks provide passive bonuses that add gameplay
+    variety. The screen blocks normal gameplay until all points are
+    allocated, ensuring the player engages with the progression system.
+
+  out_of_scope:
+    - "Attribute (W.A.S.T.E.D.) respec or reallocation"
+    - "Skill tree or branching skill paths"
+    - "More than one perk per eligible level"
+    - "Perk prerequisites or dependencies"
+    - "Visual character model changes based on skills"
+
+  dependencies:
+    - "CharacterSystem (src/js/systems/CharacterSystem.js) for level-up logic"
+    - "SKILL_FORMULAS in constants.js for skill definitions"
+    - "EventBus PLAYER_LEVEL_UP event for triggering the screen"
+    - "UIManager for rendering the level-up interface"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player gains enough XP to level up"
+    when: "The level-up event fires"
+    then: "The level-up screen appears, pausing normal gameplay"
+    and:
+      - "The game state changes to a new LEVEL_UP state or uses PAUSED"
+      - "The screen displays the new level number"
+      - "The screen shows how many skill points are available"
+      - "A congratulatory message is shown in the game's humorous tone"
+
+  - id: "AC-002"
+    given: "The level-up screen is displayed"
+    when: "The player views their skills"
+    then: "All 10 skills are listed with their current values"
+    and:
+      - "Skills show: name, current value, and base value (from attributes)"
+      - "The contributing W.A.S.T.E.D. attributes for each skill are indicated"
+      - "Skills are: Firearms, Melee, Lockpick, Hacking, Medicine, Barter, Speech, Sneak, Repair, Survival"
+
+  - id: "AC-003"
+    given: "The player has pending skill points to allocate"
+    when: "The player clicks or uses a key to add a point to a skill"
+    then: "The skill's preview value increases by 1 and available points decrease by 1"
+    and:
+      - "The change is previewed but not yet committed"
+      - "The skill value change is highlighted visually"
+      - "Skills cannot exceed a maximum of 100"
+
+  - id: "AC-004"
+    given: "The player has allocated some points in preview"
+    when: "The player clicks or uses a key to remove a previewed point"
+    then: "The skill's preview value decreases by 1 and available points increase by 1"
+    and:
+      - "Only previewed (uncommitted) points can be removed"
+      - "The skill cannot go below its current committed value"
+
+  - id: "AC-005"
+    given: "The player has allocated all available skill points"
+    when: "The player confirms their allocation"
+    then: "The skill points are permanently applied to the player's character"
+    and:
+      - "pendingSkillPoints is set to 0"
+      - "The player's skillPoints object is updated with the new allocations"
+      - "The CharacterSystem recalculates derived stats"
+      - "The level-up screen closes and gameplay resumes"
+
+  - id: "AC-006"
+    given: "The player reaches level 3, 6, 9, 12, 15, or 18"
+    when: "The level-up screen appears"
+    then: "A perk selection section is displayed in addition to skill allocation"
+    and:
+      - "3-4 perk options are presented to choose from"
+      - "Each perk has a name, description, and mechanical effect"
+      - "The player must select exactly one perk before confirming"
+
+  - id: "AC-007"
+    given: "The perk selection is displayed"
+    when: "The player selects a perk"
+    then: "The perk is highlighted and its effects are previewed"
+    and:
+      - "The perk description explains the mechanical benefit"
+      - "Only one perk can be selected at a time"
+      - "Selecting a different perk deselects the previous one"
+
+  - id: "AC-008"
+    given: "The player has allocated all skill points and selected a perk (if applicable)"
+    when: "The player confirms their choices"
+    then: "Both skill allocations and perk selection are applied"
+    and:
+      - "The perk is added to the player's perk list"
+      - "The perk's passive effect is active immediately"
+      - "A message confirms the perk acquisition"
+      - "The level-up screen closes"
+
+  - id: "AC-009"
+    given: "The player has not allocated all skill points"
+    when: "The player attempts to close the level-up screen"
+    then: "A warning is displayed that unspent points will remain pending"
+    and:
+      - "The player can choose to stay and allocate or leave with points pending"
+      - "Pending points carry over and are available at the next level-up or via menu"
+
+  - id: "AC-010"
+    given: "The player levels up multiple times at once (e.g., from a large XP reward)"
+    when: "The level-up events fire"
+    then: "The level-up screen appears once with the total pending skill points"
+    and:
+      - "All pending skill points from all level-ups are available"
+      - "Perks for each eligible level are presented sequentially or together"
+
+technical_requirements:
+  constraints:
+    - "Must work within the existing canvas-based rendering system"
+    - "Must integrate with the existing CharacterSystem level-up flow"
+    - "Perk data should be defined as a static data file similar to items.js"
+    - "Must not disrupt combat flow if level-up occurs during combat (defer until combat ends)"
+    - "Keyboard navigation must be supported for all interactions"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS during level-up screen rendering and interaction"
+
+  security:
+    - "Prevent allocating more points than available"
+    - "Prevent skills from exceeding the maximum of 100"
+    - "Prevent selecting perks the player already has"
+
+  scalability: |
+    The perk system should support easy addition of new perks by adding
+    entries to the perk data file. Perk effects should use a standardized
+    effect system that can be extended without modifying core code.
+
+ui_changes:
+  components:
+    - "LevelUpScreen - New full-screen overlay for skill allocation"
+    - "PerkSelector - Sub-component for perk selection at milestone levels"
+    - "SkillBar - Visual display of skill values with allocation controls"
+    - "Modification to UIManager to handle LEVEL_UP state rendering"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: false
+  test_scenarios:
+    - "Level-up screen appears on level up"
+    - "Correct number of skill points are available (base + Wits bonus)"
+    - "Skill points can be allocated and deallocated in preview"
+    - "Skills cannot exceed 100"
+    - "Confirming allocation permanently applies skill points"
+    - "Perk selection appears at levels 3, 6, 9, 12, 15, 18"
+    - "Perk selection does not appear at non-milestone levels"
+    - "Selected perk is applied to player on confirm"
+    - "Multiple level-ups accumulate points correctly"
+    - "Level-up screen defers during active combat"
+    - "Derived stats recalculate after skill allocation"
+
+rollout:
+  feature_flag: "level_up_screen_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Disable the level_up_screen_enabled flag. The CharacterSystem will
+    continue to accumulate pendingSkillPoints without a UI to spend them,
+    reverting to the current behavior. No save data is corrupted.

@@ -1,0 +1,12 @@
+{
+  "name": "just-in-time",
+  "version": "0.1.0",
+  "description": "Just In Time - A post-apocalyptic browser RPG in the style of Fallout II",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve src -l 8080 --cors",
+    "start": "npx serve src -l 8080 --cors"
+  },
+  "keywords": ["rpg", "game", "post-apocalyptic", "browser-game"],
+  "license": "MIT"
+}

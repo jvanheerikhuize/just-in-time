@@ -1,0 +1,202 @@
+# Feature Specification: Water Treatment Plant Dungeon
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0002"
+  title: "Water Treatment Plant Dungeon"
+  version: "1.0.0"
+  status: "approved"
+  priority: "high"
+  author: "Game Design"
+  created_at: "2026-02-09"
+  updated_at: "2026-02-09"
+  tags:
+    - map
+    - dungeon
+    - main-quest
+    - combat
+    - boss
+
+description:
+  summary: |
+    A new explorable map featuring a pre-war water treatment plant located
+    north of the wastes, serving as the primary dungeon for the main quest
+    "Water We Gonna Do?" and containing the water purification chip.
+
+  problem_statement: |
+    The main quest "Water We Gonna Do?" tasks the player with finding a
+    water purification chip, but there is currently no location in the game
+    where this item can be found. The quest's find_chip stage has no
+    corresponding map or dungeon to explore.
+    - The main storyline has no resolution path
+    - The game lacks a proper dungeon-crawling experience
+    - There are no challenging multi-room combat encounters
+    - The wastes map has no northern exit despite lore suggesting locations north
+
+  proposed_solution: |
+    Create a multi-room Water Treatment Plant map accessible from the north
+    side of the wastes. The facility is a pre-war industrial complex now
+    overrun with mutant creatures and still-active automated defense systems.
+    The player must navigate through flooded corridors, toxic waste pools,
+    and broken machinery to reach the central purification chamber where the
+    water chip is located. A boss encounter guards the chip. The dungeon
+    supports multiple approaches: combat, stealth, and hacking paths through
+    certain areas.
+
+  out_of_scope:
+    - "Underwater gameplay mechanics"
+    - "Environmental radiation damage system"
+    - "Puzzle mechanics beyond locked doors and terminals"
+    - "Dungeon randomization or procedural generation"
+    - "Multiple dungeon floors (single floor only)"
+
+  dependencies:
+    - "Existing MapSystem (src/js/systems/MapSystem.js) for map loading"
+    - "Existing CombatSystem for enemy encounters"
+    - "water_we_gonna_do quest in quests.js for quest integration"
+    - "water_chip item in items.js for the quest objective"
+    - "Wastes map must be updated with a northern exit"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player is in the wastes map"
+    when: "The player moves to the northern exit tile"
+    then: "The player transitions to the Water Treatment Plant map"
+    and:
+      - "The transition uses the existing map exit system"
+      - "The player spawns at the southern entrance of the plant"
+      - "An ambient description is displayed describing the derelict facility"
+
+  - id: "AC-002"
+    given: "The Water Treatment Plant map is loaded"
+    when: "The player explores the facility"
+    then: "The map contains distinct areas connected by corridors"
+    and:
+      - "Entry area: reception/lobby with debris and initial enemies"
+      - "Processing area: large room with toxic waste pools and pipes"
+      - "Control room: accessible via locked door (lockpick) or terminal (hacking)"
+      - "Purification chamber: final room containing the water chip and boss"
+      - "Walls use metal wall tiles (H) to convey an industrial setting"
+      - "Toxic waste tiles (T) are used for hazardous areas"
+
+  - id: "AC-003"
+    given: "The player enters the entry area of the plant"
+    when: "They encounter mutant creatures"
+    then: "Combat initiates with Mutant Roaches (stronger variants of Radroaches)"
+    and:
+      - "Mutant Roaches have higher HP and damage than standard Radroaches"
+      - "There are 2-3 Mutant Roaches in the entry area"
+      - "They drop mutant meat and occasionally stimpaks"
+
+  - id: "AC-004"
+    given: "The player reaches the processing area"
+    when: "They encounter automated defenses"
+    then: "Combat initiates with Sentry Turrets"
+    and:
+      - "Sentry Turrets are ranged enemies that cannot move"
+      - "They have moderate HP but high accuracy"
+      - "They drop energy cells and scrap metal on defeat"
+      - "There are 2 Sentry Turrets in the processing area"
+
+  - id: "AC-005"
+    given: "The player reaches the control room door"
+    when: "The door is locked"
+    then: "The player can bypass the lock using Lockpick skill (difficulty 40) or hack the adjacent terminal using Hacking skill (difficulty 35)"
+    and:
+      - "Success opens the door permanently"
+      - "Failure displays a skill check failure message with the roll details"
+      - "The control room contains lore terminals and supply crates"
+
+  - id: "AC-006"
+    given: "The player enters the purification chamber"
+    when: "They approach the water chip"
+    then: "A boss encounter triggers with the Overflow Guardian"
+    and:
+      - "The Overflow Guardian is a large mutant creature"
+      - "It has significantly more HP than regular enemies (80+ HP)"
+      - "It deals 8-18 damage per hit"
+      - "It has a combat quip and death quip in the game's humorous tone"
+      - "Defeating it grants 200+ XP"
+
+  - id: "AC-007"
+    given: "The Overflow Guardian is defeated"
+    when: "The player interacts with the water chip container"
+    then: "The water_chip item is added to the player's inventory"
+    and:
+      - "The quest objective 'Find a Water Purification Chip' is marked complete"
+      - "A narrative message describes finding the chip"
+      - "The player can freely exit the dungeon"
+
+  - id: "AC-008"
+    given: "The player has collected the water chip"
+    when: "They return to Mayor Bottlecap in Dustbowl"
+    then: "The 'Water We Gonna Do?' quest can be completed"
+    and:
+      - "The quest rewards (300 XP, 200 caps, metal armor) are granted"
+      - "The quest complete message is displayed"
+
+  - id: "AC-009"
+    given: "The player is in the Water Treatment Plant"
+    when: "They move to the southern exit tile"
+    then: "The player transitions back to the wastes map"
+    and:
+      - "The player spawns at the from_treatment_plant spawn point"
+      - "Enemy state is preserved if the player re-enters (defeated enemies stay gone)"
+
+  - id: "AC-010"
+    given: "The Water Treatment Plant map exists"
+    when: "The map data is reviewed"
+    then: "The map is registered in ALL_MAPS with proper metadata"
+    and:
+      - "Map ID is 'treatment_plant'"
+      - "Map has spawns, exits, entities, and an ambient description"
+      - "Entity definitions for all enemies are in ENTITY_DEFS"
+      - "The wastes map has a new northern exit pointing to treatment_plant"
+
+technical_requirements:
+  constraints:
+    - "Map must use the existing text-based map encoding system (encodeMap)"
+    - "All new entity types must follow the existing ENTITY_DEFS pattern"
+    - "Boss encounter must work within the existing CombatSystem"
+    - "Map size should be reasonable for browser performance (under 60x40 tiles)"
+    - "Must not break existing map transitions between vault42, wastes, and dustbowl"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS maintained with all entities rendered"
+
+  security:
+    - "Water chip should only be obtainable after boss defeat"
+
+  scalability: |
+    The map structure should serve as a template for future dungeons.
+    Entity placement patterns established here can be reused.
+
+ui_changes:
+  components:
+    - "No new UI components required"
+    - "Existing map renderer handles new tile types already defined in constants"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: false
+  test_scenarios:
+    - "Map transitions work correctly between wastes and treatment plant (both directions)"
+    - "All enemies spawn at correct positions with correct stats"
+    - "Boss encounter triggers when entering purification chamber"
+    - "Water chip is obtainable after boss defeat"
+    - "Locked door responds to Lockpick and Hacking skill checks"
+    - "Quest progression updates correctly when water chip is found"
+    - "Map tiles render correctly with no missing tile definitions"
+    - "Defeated enemies do not respawn on re-entry"
+
+rollout:
+  feature_flag: "water_treatment_plant_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Remove the northern exit from the wastes map and remove the
+    treatment_plant entry from ALL_MAPS. The water_we_gonna_do quest
+    will remain in its current incomplete state. No save data corruption
+    risk since the map simply becomes inaccessible.

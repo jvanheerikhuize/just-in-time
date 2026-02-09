@@ -1,0 +1,182 @@
+# Feature Specification: Trading System
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0001"
+  title: "NPC Trading and Barter System"
+  version: "1.0.0"
+  status: "approved"
+  priority: "high"
+  author: "Game Design"
+  created_at: "2026-02-09"
+  updated_at: "2026-02-09"
+  tags:
+    - gameplay
+    - economy
+    - npc
+    - barter
+
+description:
+  summary: |
+    A trading and barter system that allows the player to buy and sell items
+    with NPC merchants, with prices influenced by the player's Barter skill.
+
+  problem_statement: |
+    Currently, the player has no way to acquire items outside of looting
+    containers and enemy drops. NPCs like Rusty (the robot merchant in
+    Dustbowl) and Patches (the wasteland trader) exist in the game but
+    have no trading functionality.
+    - Players cannot sell unwanted items for caps
+    - Players cannot purchase supplies they need (stimpaks, ammo, etc.)
+    - The Barter skill (derived from Wits + Daring) has no gameplay impact
+    - The caps currency system has no spending mechanism
+
+  proposed_solution: |
+    Implement a trading UI that opens when the player interacts with a
+    merchant NPC. The interface displays the merchant's inventory alongside
+    the player's inventory, with buy/sell prices shown for each item.
+    The player's Barter skill affects pricing: higher Barter means better
+    buy prices and better sell prices. Each merchant NPC has a unique
+    inventory and a caps pool that limits how much they can buy from the
+    player. Merchant inventories restock over time or on map re-entry.
+
+  out_of_scope:
+    - "Player-to-player trading (single-player game)"
+    - "Crafting or item modification"
+    - "Dynamic supply-and-demand pricing"
+    - "Merchant reputation or relationship system"
+    - "Stealing from merchants"
+
+  dependencies:
+    - "Existing InventorySystem (src/js/systems/InventorySystem.js)"
+    - "Existing DialogSystem for triggering trade via dialog options"
+    - "ITEM_DEFS item value property used as base price"
+    - "Barter skill from SKILL_FORMULAS in constants.js"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player is adjacent to a merchant NPC (e.g., Rusty, Patches)"
+    when: "The player initiates interaction and selects 'Trade' from the dialog"
+    then: "A trading interface opens showing the merchant's inventory and the player's inventory side by side"
+    and:
+      - "Each item displays its name, quantity, and price"
+      - "The player's current caps balance is visible"
+      - "The merchant's caps balance is visible"
+
+  - id: "AC-002"
+    given: "The trading interface is open and the player has enough caps"
+    when: "The player selects an item from the merchant's inventory and confirms the purchase"
+    then: "The item is transferred from the merchant's inventory to the player's inventory"
+    and:
+      - "The player's caps decrease by the buy price"
+      - "The merchant's caps increase by the buy price"
+      - "A confirmation message is displayed in the message log"
+
+  - id: "AC-003"
+    given: "The trading interface is open and the merchant has enough caps"
+    when: "The player selects an item from their inventory and confirms the sale"
+    then: "The item is transferred from the player's inventory to the merchant's inventory"
+    and:
+      - "The player's caps increase by the sell price"
+      - "The merchant's caps decrease by the sell price"
+      - "Quest items cannot be sold"
+
+  - id: "AC-004"
+    given: "The player has a Barter skill of 50 (base for Wits 5, Daring 5)"
+    when: "They view item prices in the trading interface"
+    then: "Buy prices are the item's base value multiplied by a markup factor adjusted by Barter skill"
+    and:
+      - "At Barter 50, buy price is approximately 150% of base value"
+      - "At Barter 100, buy price approaches 110% of base value"
+      - "At Barter 10, buy price is approximately 200% of base value"
+      - "Sell price is always lower than buy price (approximately 40-70% of base value depending on Barter)"
+
+  - id: "AC-005"
+    given: "The merchant Rusty is in Dustbowl"
+    when: "The player opens trade with Rusty"
+    then: "Rusty's inventory contains general goods appropriate to a wasteland store"
+    and:
+      - "Stock includes weapons, ammo, consumables, and miscellaneous items"
+      - "Stock quantities are limited"
+      - "Rusty has a starting caps pool of 500"
+
+  - id: "AC-006"
+    given: "The merchant Patches is in Dustbowl"
+    when: "The player opens trade with Patches"
+    then: "Patches' inventory contains traveling merchant goods"
+    and:
+      - "Stock includes rarer items not found in Rusty's store"
+      - "Patches has a starting caps pool of 300"
+      - "Patches' stock is smaller but more specialized"
+
+  - id: "AC-007"
+    given: "The player does not have enough caps to buy an item"
+    when: "They attempt to purchase that item"
+    then: "The purchase is blocked and a message is displayed"
+    and:
+      - "The message includes a humorous quip in the game's tone"
+      - "No items or caps are exchanged"
+
+  - id: "AC-008"
+    given: "The merchant does not have enough caps to buy an item from the player"
+    when: "The player attempts to sell that item"
+    then: "The sale is blocked and a message is displayed"
+    and:
+      - "The message explains the merchant can't afford it"
+
+  - id: "AC-009"
+    given: "The player is in the trading interface"
+    when: "The player presses Escape or clicks a close button"
+    then: "The trading interface closes and the game returns to the playing state"
+    and:
+      - "No pending transactions are executed"
+      - "The game state returns to PLAYING or DIALOG as appropriate"
+
+technical_requirements:
+  constraints:
+    - "Must integrate with the existing InventorySystem without breaking current item management"
+    - "Must use the existing item value property from ITEM_DEFS as base price"
+    - "Must work within the current canvas-based rendering system"
+    - "Merchant data should be defined in entities.js alongside existing NPC definitions"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS maintained during trade UI rendering"
+
+  security:
+    - "Prevent negative caps through transaction validation"
+    - "Prevent item duplication through atomic transaction handling"
+
+  scalability: |
+    The system should support adding new merchants by simply defining them
+    in the entity data with a merchantInventory property. No code changes
+    needed to add new merchants.
+
+ui_changes:
+  components:
+    - "TradeUI - New trade interface panel rendered on canvas"
+    - "Modification to UIManager to handle trade state rendering"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: false
+  test_scenarios:
+    - "Player buys an item successfully"
+    - "Player sells an item successfully"
+    - "Barter skill correctly modifies prices at various skill levels"
+    - "Insufficient caps blocks purchase"
+    - "Insufficient merchant caps blocks sale"
+    - "Quest items cannot be sold"
+    - "Carry weight limit prevents buying too many items"
+    - "Trading interface opens and closes correctly"
+    - "Merchant inventory contains expected items"
+
+rollout:
+  feature_flag: "trading_system_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Remove trade dialog options from NPC dialog trees and disable the
+    trading_system_enabled flag. Existing player saves are unaffected
+    since no save data changes are required for rollback.

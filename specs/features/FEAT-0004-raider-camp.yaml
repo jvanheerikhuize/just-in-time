@@ -1,0 +1,218 @@
+# Feature Specification: Raider Camp Encounter Area
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0004"
+  title: "Raider Camp Encounter Area"
+  version: "1.0.0"
+  status: "draft"
+  priority: "medium"
+  author: "Game Design"
+  created_at: "2026-02-09"
+  updated_at: "2026-02-09"
+  tags:
+    - map
+    - combat
+    - side-quest
+    - multiple-paths
+    - npc
+
+description:
+  summary: |
+    A new explorable map featuring a raider camp east of the wastes, offering
+    combat encounters with raiders and multiple approach paths including
+    combat, stealth, and speech options to rescue Patches' stolen goods.
+
+  problem_statement: |
+    The game currently has limited encounter variety and exploration content
+    beyond the main quest path. The wastes map has no eastern content, and
+    the traveling merchant Patches mentions having traveled widely but there
+    is no narrative thread involving his backstory.
+    - Combat encounters are limited to radroaches and a single security bot
+    - There are no human-type enemies in the game
+    - The game lacks encounters that reward different character builds
+    - The Speech and Sneak skills have limited gameplay applications
+    - Patches has no associated side quest content
+
+  proposed_solution: |
+    Create a Raider Camp map accessible from the eastern side of the wastes.
+    A group of raiders has set up camp in a pre-war rest stop and has been
+    raiding travelers, including stealing a shipment from Patches. The player
+    can approach the camp in multiple ways: fight through the raiders head-on,
+    sneak in through a back entrance to grab the goods, or talk their way
+    past the raider leader with high Speech skill. A new side quest ties
+    into the existing NPC Patches, giving the player a reason to visit and
+    a reward for completing the objective.
+
+  out_of_scope:
+    - "Recruitable raider companions"
+    - "Raider faction reputation system"
+    - "Camp building or modification by the player"
+    - "Recurring raider encounters or respawning raiders"
+    - "Prisoner rescue mechanics beyond item retrieval"
+
+  dependencies:
+    - "Existing MapSystem for map loading and transitions"
+    - "Existing CombatSystem for raider combat encounters"
+    - "Existing DialogSystem for speech-based approach"
+    - "CharacterSystem skill checks for Sneak and Speech paths"
+    - "Patches NPC entity in Dustbowl (wasteland_trader in entities.js)"
+    - "Wastes map must be updated with an eastern exit"
+    - "FEAT-0001: Trading System (optional; enhances Patches' reward)"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player is in the wastes map"
+    when: "The player moves to the eastern exit tile"
+    then: "The player transitions to the Raider Camp map"
+    and:
+      - "The player spawns at the western edge of the raider camp"
+      - "An ambient description sets the scene of a fortified rest stop"
+
+  - id: "AC-002"
+    given: "The Raider Camp map is loaded"
+    when: "The player explores the camp"
+    then: "The map contains distinct zones"
+    and:
+      - "Outer perimeter: fence and debris forming a defensive wall"
+      - "Main gate: the obvious front entrance, guarded by raiders"
+      - "Back entrance: a gap in the fence accessible via a sneak path"
+      - "Camp interior: tents/shelters, campfire area, supply storage"
+      - "Leader's shack: where the raider leader and stolen goods are located"
+      - "The map uses a mix of dirt, road, fence, and wood wall tiles"
+
+  - id: "AC-003"
+    given: "The player approaches the main gate"
+    when: "A raider guard spots them"
+    then: "The raider guard initiates dialog before combat"
+    and:
+      - "The guard threatens the player and demands they leave"
+      - "The player can choose to fight (initiates combat)"
+      - "The player can attempt a Speech check (difficulty 50) to bluff their way in"
+      - "Failing the Speech check initiates combat"
+
+  - id: "AC-004"
+    given: "The player chooses to fight the raiders"
+    when: "Combat is initiated"
+    then: "The player fights raider enemies"
+    and:
+      - "Raider Grunt: 20 HP, 5-10 damage, armed with melee weapons, 30 XP"
+      - "Raider Gunner: 18 HP, 6-12 damage, armed with pipe rifles, range 8, 40 XP"
+      - "There are 3-4 raiders total in the camp exterior"
+      - "Raiders have appropriate loot (caps, ammo, consumables)"
+      - "Raiders have combat quips and death quips in the game's humorous tone"
+
+  - id: "AC-005"
+    given: "The player attempts the stealth approach"
+    when: "They move to the back entrance area"
+    then: "A Sneak skill check (difficulty 45) determines if they enter undetected"
+    and:
+      - "Success: the player enters the camp without alerting raiders"
+      - "Failure: the nearest raider is alerted and combat begins"
+      - "The back entrance is visually distinguishable (gap in fence)"
+
+  - id: "AC-006"
+    given: "The player reaches the leader's shack (by any approach)"
+    when: "They encounter the Raider Leader"
+    then: "A dialog exchange occurs with the Raider Leader"
+    and:
+      - "The leader is named 'Grizzle' and has a distinct personality"
+      - "The player can fight Grizzle (35 HP, 8-15 damage, 75 XP)"
+      - "The player can attempt a Speech check (difficulty 60) to convince Grizzle to hand over the goods"
+      - "If the player sneaked in, they can attempt to steal the goods with a Sneak check (difficulty 55)"
+
+  - id: "AC-007"
+    given: "The player obtains Patches' stolen goods (by any method)"
+    when: "The goods are picked up"
+    then: "A quest item 'Patches Stolen Goods' is added to inventory"
+    and:
+      - "The item is defined in ITEM_DEFS as a quest item"
+      - "A message confirms the acquisition"
+
+  - id: "AC-008"
+    given: "The player has Patches' stolen goods in their inventory"
+    when: "They return to Patches in Dustbowl and talk to him"
+    then: "The side quest 'Sticky Fingers' is completed"
+    and:
+      - "Patches thanks the player with gratitude and humor"
+      - "Rewards: 150 XP, 100 caps, and a choice of rare items"
+      - "Patches' dialog options update to reflect the completed quest"
+
+  - id: "AC-009"
+    given: "The player used the Speech path to resolve encounters"
+    when: "The quest is completed"
+    then: "XP rewards are equivalent to or greater than the combat path"
+    and:
+      - "Speech check successes grant XP comparable to defeating enemies"
+      - "Non-combat approaches are viable for character builds focused on Speech/Sneak"
+
+  - id: "AC-010"
+    given: "A new side quest 'Sticky Fingers' is defined"
+    when: "The player talks to Patches in Dustbowl after reaching Dustbowl"
+    then: "Patches mentions his stolen goods and the quest becomes active"
+    and:
+      - "The quest has stages: talk_patches, retrieve_goods, return_goods"
+      - "The quest is added to QUEST_DEFS in quests.js"
+      - "The quest follows the existing quest definition pattern"
+
+  - id: "AC-011"
+    given: "The player is in the Raider Camp"
+    when: "They move to the western exit tile"
+    then: "The player transitions back to the wastes map"
+    and:
+      - "The player spawns at the from_raider_camp spawn point in the wastes"
+      - "Defeated raiders do not respawn on re-entry"
+
+technical_requirements:
+  constraints:
+    - "Map must use the existing text-based map encoding system"
+    - "All new entity and item definitions must follow existing patterns"
+    - "Dialog trees must use the existing DialogSystem format"
+    - "Skill checks must use the existing CharacterSystem.skillCheck method"
+    - "Multiple approach paths must be achievable without requiring all skills"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS with all raider entities rendered"
+
+  security:
+    - "Prevent obtaining stolen goods more than once"
+    - "Ensure quest state consistency across different approach paths"
+
+  scalability: |
+    The multi-approach encounter pattern established here (combat, stealth,
+    speech) can serve as a template for future encounter areas. The raider
+    enemy type can be reused with variations in other maps.
+
+ui_changes:
+  components:
+    - "No new UI components required"
+    - "Existing dialog and combat UI handles all interactions"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: false
+  test_scenarios:
+    - "Map transitions work between wastes and raider camp"
+    - "Combat path: player can fight through all raiders and obtain goods"
+    - "Stealth path: successful sneak check allows undetected entry"
+    - "Stealth path: failed sneak check triggers combat"
+    - "Speech path: successful speech check at gate grants entry"
+    - "Speech path: successful speech check with leader obtains goods"
+    - "Speech path: failed speech check triggers combat"
+    - "Stolen goods item is added to inventory correctly"
+    - "Quest 'Sticky Fingers' progresses through all stages"
+    - "Returning goods to Patches completes the quest and grants rewards"
+    - "Raiders do not respawn after being defeated"
+    - "XP rewards are balanced across different approach paths"
+
+rollout:
+  feature_flag: "raider_camp_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Remove the eastern exit from the wastes map and remove the raider_camp
+    entry from ALL_MAPS. Remove the 'Sticky Fingers' quest trigger from
+    Patches' dialog. The Patches NPC continues to function as before.
+    No save data corruption risk.
