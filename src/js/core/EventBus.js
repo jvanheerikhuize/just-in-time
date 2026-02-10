@@ -109,4 +109,7 @@ export const Events = {
 
   // Story flags
   FLAG_SET: 'flag:set',
+
+  // Reputation
+  REPUTATION_CHANGE: 'reputation:change',
 };

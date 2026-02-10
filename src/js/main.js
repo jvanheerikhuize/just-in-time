@@ -59,6 +59,13 @@ eventBus.on(Events.ENTITY_DESTROY, (entity) => {
       }
     }
   }
+
+  // Reputation consequences: killing an entity angers their allies
+  if (entity.allies) {
+    for (const allyId of entity.allies) {
+      game.changeReputation(allyId, -15);
+    }
+  }
 });
 
 eventBus.on(Events.ITEM_ADD, (itemId) => {

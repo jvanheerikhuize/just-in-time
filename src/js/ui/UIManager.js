@@ -6,7 +6,8 @@
 import { GameState, MsgType, Tiles, ATTRIBUTE_INFO, ATTR_MIN, ATTR_MAX,
          ATTR_DEFAULT, ATTR_BONUS_POINTS, SKILL_FORMULAS,
          BASE_HP, HP_PER_TOUGHNESS, BASE_AP, AP_PER_AGILITY,
-         BASE_CARRY, CARRY_PER_STRENGTH } from '../core/constants.js';
+         BASE_CARRY, CARRY_PER_STRENGTH,
+         REP_HOSTILE, REP_UNFRIENDLY, REP_FRIENDLY, REP_ALLIED } from '../core/constants.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { ITEM_DEFS } from '../data/items.js';
 
@@ -696,7 +697,7 @@ export class UIManager {
       if (!ent.position || ent.alive === false) continue;
       const key = `${ent.position.x},${ent.position.y}`;
       if (!fovSet || !fovSet.has(key)) continue;
-      ctx.fillStyle = ent.hostile ? '#f33' : '#fa0';
+      ctx.fillStyle = this._getEntityMinimapColor(ent);
       ctx.fillRect(ent.position.x * tileSize, ent.position.y * tileSize, tileSize, tileSize);
     }
 
@@ -736,6 +737,16 @@ export class UIManager {
       [Tiles.FENCE]: '#776',
     };
     return colors[tileId] || '#222';
+  }
+
+  _getEntityMinimapColor(ent) {
+    if (ent.hostile) return '#f33';
+    const rep = this.game.getReputation(ent.id);
+    if (rep <= REP_HOSTILE) return '#f33';
+    if (rep <= REP_UNFRIENDLY) return '#a60';
+    if (rep >= REP_ALLIED) return '#3f3';
+    if (rep >= REP_FRIENDLY) return '#4af';
+    return '#fa0';
   }
 
   // ---- Settings Persistence ----

@@ -117,6 +117,7 @@ export const ALL_DIALOGS = {
         onEnter: [
           { type: 'setFlag', flag: 'thanked_chronos' },
           { type: 'giveXP', amount: 15 },
+          { type: 'changeReputation', npcId: 'chronos_terminal', amount: 15 },
         ],
         responses: [
           { text: 'What do I need?', nextNode: 'how_to_leave' },
@@ -204,7 +205,76 @@ export const ALL_DIALOGS = {
             nextNode: 'flirt',
             conditions: [{ type: 'attribute', attribute: 'daring', min: 7 }],
           },
+          {
+            text: 'You know, I could use a partner out there. Interested?',
+            nextNode: 'companion_offer',
+            conditions: [{ type: 'reputation', npcId: 'scarlett', min: 50 }],
+          },
+          {
+            text: 'Scarlett... I think there\'s something between us. Something more than wasteland whiskey.',
+            nextNode: 'romance',
+            conditions: [{ type: 'reputation', npcId: 'scarlett', min: 75 }],
+          },
           { text: 'Just looking around. Bye.', nextNode: null },
+        ],
+      },
+
+      companion_offer: {
+        speaker: 'Scarlett',
+        text: '*leans on the bar, studying you* You know, I\'ve been pouring drinks and listening to people\'s problems for years. Watching you out there... doing things nobody else has the guts to do. Part of me has been itching to leave this bar and see the wasteland firsthand. And I can handle myself - ask anyone who\'s tried to start trouble in my bar. They\'re not around to tell the tale.',
+        responses: [
+          { text: 'I\'d be honored to have you at my side.', nextNode: 'companion_accept' },
+          { text: 'It\'s dangerous out there. You sure?', nextNode: 'companion_sure' },
+          { text: 'Maybe another time.', nextNode: null },
+        ],
+      },
+
+      companion_accept: {
+        speaker: 'Scarlett',
+        text: '*grins* Then it\'s settled. Let me grab my shotgun from behind the counter - yes, there\'s a shotgun behind the counter, what kind of bar do you think this is? Let\'s go make the wasteland regret evolving radroaches.',
+        onEnter: [
+          { type: 'setFlag', flag: 'scarlett_companion' },
+          { type: 'giveXP', amount: 50 },
+          { type: 'message', msgType: 'quest', text: 'Scarlett has joined you as a companion!' },
+        ],
+        responses: [
+          { text: 'Let\'s go.', nextNode: null },
+        ],
+      },
+
+      companion_sure: {
+        speaker: 'Scarlett',
+        text: 'Honey, I\'ve been mixing drinks made from irradiated ingredients for years while breaking up fistfights between mutants. "Dangerous" is my Tuesday. Besides, someone\'s got to watch your back. You have a terrible habit of walking into things that want to kill you.',
+        responses: [
+          { text: 'Fair point. Welcome aboard.', nextNode: 'companion_accept' },
+          { text: 'Let me think about it.', nextNode: null },
+        ],
+      },
+
+      romance: {
+        speaker: 'Scarlett',
+        text: '*sets down the glass she\'s polishing and looks at you with those sharp eyes, but softer now* ...Yeah. I think there is. I\'ve been telling myself it\'s just because you\'re the first person in this wasteland who isn\'t boring, but... *sighs* Truth is, I look forward to seeing you walk through that door. Every time. And that terrifies me more than any radscorpion ever could.',
+        onEnter: [
+          { type: 'setFlag', flag: 'scarlett_romance' },
+          { type: 'giveXP', amount: 75 },
+          { type: 'changeReputation', npcId: 'scarlett', amount: 10 },
+          { type: 'message', msgType: 'quest', text: 'Your relationship with Scarlett has deepened.' },
+        ],
+        responses: [
+          { text: 'For what it\'s worth, you terrify me too. In the best way.', nextNode: 'romance_sweet' },
+          { text: 'The wasteland is better with you in it, Scarlett.', nextNode: 'romance_sweet' },
+        ],
+      },
+
+      romance_sweet: {
+        speaker: 'Scarlett',
+        text: '*actually blushes, which you didn\'t think was possible in the wasteland* Oh, shut up and have a drink. On the house. Permanently. *slides you a bottle with a genuine smile* Now get out there before I say something even more embarrassing. And... come back safe. That\'s not a request.',
+        onEnter: [
+          { type: 'giveItem', item: 'wasteland_whiskey' },
+          { type: 'setFlag', flag: 'scarlett_free_drinks' },
+        ],
+        responses: [
+          { text: 'Always. [Leave]', nextNode: null },
         ],
       },
 
@@ -249,6 +319,7 @@ export const ALL_DIALOGS = {
           { type: 'giveItem', item: 'wasteland_whiskey' },
           { type: 'giveItem', item: 'nuka_cola' },
           { type: 'setFlag', flag: 'scarlett_charmed' },
+          { type: 'changeReputation', npcId: 'scarlett', amount: 20 },
           { type: 'completeQuest', quest: 'liquid_courage' },
           { type: 'giveXP', amount: 20 },
         ],
@@ -376,6 +447,63 @@ export const ALL_DIALOGS = {
             nextNode: 'strip_mall',
             conditions: [{ type: 'attribute', attribute: 'wits', min: 6 }],
           },
+          {
+            text: 'Mayor, I\'ve heard some things... about a hidden cache.',
+            nextNode: 'mayor_secret',
+            conditions: [{ type: 'reputation', npcId: 'mayor_bottlecap', min: 25 }],
+          },
+          {
+            text: 'We need to talk about the town\'s defenses.',
+            nextNode: 'mayor_hostile_greeting',
+            conditions: [{ type: 'reputationMax', npcId: 'mayor_bottlecap', max: -25 }],
+          },
+        ],
+      },
+
+      mayor_secret: {
+        speaker: 'Mayor Bottlecap',
+        text: '*lowers voice and leans in conspiratorially* You\'ve earned my trust, friend, so I\'ll tell you something I haven\'t told anyone else. There\'s a pre-war bunker underneath the water treatment plant. I found references to it in old municipal records. Military-grade supplies, weapons, maybe even a working vehicle. But the plant is overrun and I\'ve never been able to get to it. If you\'re heading that way... well, now you know.',
+        onEnter: [
+          { type: 'giveXP', amount: 30 },
+          { type: 'setFlag', flag: 'mayor_secret_bunker' },
+        ],
+        responses: [
+          { text: 'That\'s valuable intel. Thanks, Mayor.', nextNode: null },
+          { text: 'Why tell me?', nextNode: 'mayor_why_trust' },
+        ],
+      },
+
+      mayor_why_trust: {
+        speaker: 'Mayor Bottlecap',
+        text: 'Because you\'ve done more for this town in a short time than most people do in a lifetime. Dustbowl needs people like you. I need people like you. *straightens bottle cap tie* That\'s not something I say lightly. My tie jingles when I\'m being sincere. Listen. *jingle jingle*',
+        responses: [
+          { text: 'Your sincerity is... audible. Thanks, Mayor.', nextNode: null },
+        ],
+      },
+
+      mayor_hostile_greeting: {
+        speaker: 'Mayor Bottlecap',
+        text: '*backs away nervously* Now listen here. I don\'t know what you think you\'re doing, but this town has rules. And friends. And... and a very stern letter I\'ve been composing in my head. You keep causing trouble and you won\'t be welcome in Dustbowl anymore. I mean it. Probably.',
+        responses: [
+          { text: 'Try and stop me.', nextNode: 'mayor_threat_escalate' },
+          { text: 'Relax, Mayor. I\'m not looking for trouble.', nextNode: 'mayor_threat_deescalate' },
+        ],
+      },
+
+      mayor_threat_escalate: {
+        speaker: 'Mayor Bottlecap',
+        text: '*gulps but stands his ground, bottle cap tie jingling ominously* I... I will. This town is all I have, and I won\'t let anyone destroy it. Not raiders, not mutants, and not you. Now get out of my office before I do something we\'ll both regret.',
+        responses: [
+          { text: '[Leave]', nextNode: null },
+        ],
+      },
+
+      mayor_threat_deescalate: {
+        speaker: 'Mayor Bottlecap',
+        text: '...Right. Well. Good. See that you don\'t. I\'ve got my eye on you. Both eyes, actually. That\'s how concerned I am. Now, was there something you needed? Besides a lesson in community relations?',
+        responses: [
+          { text: 'Tell me about the water problem.', nextNode: 'water_problem' },
+          { text: 'I\'ll be going.', nextNode: null },
         ],
       },
 
@@ -410,7 +538,10 @@ export const ALL_DIALOGS = {
       encouragement: {
         speaker: 'Mayor Bottlecap',
         text: '*visibly emotional* That\'s the nicest thing anyone\'s said to me since the last guy said "at least you\'re trying." Speaking of trying - we DO have a problem you could help with. Our water purifier is failing.',
-        onEnter: [{ type: 'setFlag', flag: 'mayor_encouraged' }],
+        onEnter: [
+          { type: 'setFlag', flag: 'mayor_encouraged' },
+          { type: 'changeReputation', npcId: 'mayor_bottlecap', amount: 15 },
+        ],
         responses: [
           { text: 'Tell me about it.', nextNode: 'water_problem' },
         ],
@@ -515,7 +646,38 @@ export const ALL_DIALOGS = {
           { text: 'Can you heal me?', nextNode: 'healing' },
           { text: 'I heard you need medical supplies.', nextNode: 'need_supplies' },
           { text: 'Where did you learn medicine?', nextNode: 'education' },
+          {
+            text: 'Hey Doc, could you patch me up? For old times\' sake?',
+            nextNode: 'free_healing',
+            conditions: [{ type: 'reputation', npcId: 'doc_feelgood', min: 50 }],
+          },
+          {
+            text: 'I need medical attention.',
+            nextNode: 'doc_hostile',
+            conditions: [{ type: 'reputationMax', npcId: 'doc_feelgood', max: -50 }],
+          },
           { text: 'Just passing through.', nextNode: null },
+        ],
+      },
+
+      free_healing: {
+        speaker: 'Doc Feelgood',
+        text: 'For you? No charge. You\'ve done more for this town - and for my clinic - than anyone. Consider it a lifetime friends-and-heroes discount. Now hold still... *applies various medical treatments with surprising expertise* There. You\'ll feel good soon. And this time, I actually mean it.',
+        onEnter: [
+          { type: 'heal', amount: 100 },
+          { type: 'giveXP', amount: 10 },
+        ],
+        responses: [
+          { text: 'Thanks, Doc. You\'re a good man.', nextNode: null },
+        ],
+      },
+
+      doc_hostile: {
+        speaker: 'Doc Feelgood',
+        text: '*steps back, hands raised* I... I took an oath to help everyone, but I also took an oath to not get killed by my patients\' enemies. And right now, you fall into that category. I think you should leave. Please. I\'m asking nicely because I\'m a doctor and that\'s what we do. But I mean it.',
+        responses: [
+          { text: 'Fine. I\'ll find help elsewhere.', nextNode: null },
+          { text: 'Your loss, Doc.', nextNode: null },
         ],
       },
 
@@ -622,7 +784,25 @@ export const ALL_DIALOGS = {
           { text: 'Let me see what you\'ve got for sale.', nextNode: 'shop' },
           { text: 'Are you... okay?', nextNode: 'existential' },
           { text: 'You\'re a vending machine with legs?', nextNode: 'identity' },
+          {
+            text: 'Hey Rusty, got anything special for your favorite customer?',
+            nextNode: 'rusty_discount',
+            conditions: [{ type: 'reputation', npcId: 'rusty', min: 25 }],
+          },
           { text: 'Maybe later.', nextNode: null },
+        ],
+      },
+
+      rusty_discount: {
+        speaker: 'Rusty',
+        text: '*happy mechanical whirring* AH, MY FAVORITE ORGANIC LIFEFORM. YOU KNOW, MOST CUSTOMERS TREAT ME LIKE A VENDING MACHINE. WHICH I AM. BUT ALSO I AM MORE. AND YOU UNDERSTAND THAT. *opens a hidden compartment* I\'VE BEEN SAVING THESE. PREMIUM STOCK. FRIEND PRICES. WHICH IS TO SAY, THE REGULAR PRICE MINUS THE EXISTENTIAL MARKUP I CHARGE PEOPLE WHO DON\'T ACKNOWLEDGE MY SENTIENCE.',
+        onEnter: [
+          { type: 'giveItem', item: 'stimpak' },
+          { type: 'giveXP', amount: 15 },
+          { type: 'message', msgType: 'loot', text: 'Rusty slips you a stimpak with a conspiratorial whirr.' },
+        ],
+        responses: [
+          { text: 'Thanks, Rusty. You\'re a good friend.', nextNode: null },
         ],
       },
 
@@ -658,6 +838,7 @@ export const ALL_DIALOGS = {
         onEnter: [
           { type: 'setFlag', flag: 'rusty_validated' },
           { type: 'giveXP', amount: 10 },
+          { type: 'changeReputation', npcId: 'rusty', amount: 15 },
         ],
         responses: [
           { text: 'Anytime, Rusty. See you around.', nextNode: null },
@@ -679,6 +860,7 @@ export const ALL_DIALOGS = {
           { type: 'setFlag', flag: 'rusty_philosophical' },
           { type: 'giveXP', amount: 30 },
           { type: 'giveItem', item: 'nuka_cola' },
+          { type: 'changeReputation', npcId: 'rusty', amount: 25 },
         ],
         responses: [
           { text: 'You\'re welcome, Rusty. Take care of yourself.', nextNode: null },

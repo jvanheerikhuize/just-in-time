@@ -249,6 +249,16 @@ export const TILE_PROPS = {
   [Tiles.SIGN]:         { char: '!', fg: '#ff4', bg: '#332', walkable: false, transparent: true,  name: 'Sign', interactable: true },
 };
 
+// ---- Reputation ----
+export const REP_MIN = -100;
+export const REP_MAX = 100;
+export const REP_DEFAULT = 0;
+export const REP_HOSTILE = -50;      // NPC attacks on sight
+export const REP_UNFRIENDLY = -25;   // NPC refuses dialog
+export const REP_FRIENDLY = 25;      // Better prices/info
+export const REP_ALLIED = 50;        // Companion option
+export const REP_ROMANCE = 75;       // Romance dialog
+
 // ---- Quest States ----
 export const QuestState = {
   UNKNOWN: 'unknown',

@@ -18,6 +18,7 @@ export const ENTITY_DEFS = {
     sprite: { char: 'P', fg: '#4f4', bg: '#232' },
     blocking: false,
     dialogId: 'chronos_intro',
+    allies: ['security_bot'],
   },
 
   vault_locker_1: {
@@ -70,6 +71,7 @@ export const ENTITY_DEFS = {
     loot: ['scrap_metal', 'energy_cell'],
     combatQuip: 'HAVE A NICE DAY. COMPLIANCE IS MANDATORY.',
     deathQuip: 'It sparks, sputters, and cheerfully announces "SHUTTING DOWN. HAVE A NICE DAY." as it collapses.',
+    allies: ['chronos_terminal'],
   },
 
   // ============================================================
@@ -84,6 +86,7 @@ export const ENTITY_DEFS = {
     sprite: { char: 'S', fg: Colors.NPC_FRIENDLY, bg: 'transparent' },
     blocking: true,
     dialogId: 'scarlett_intro',
+    allies: ['mayor_bottlecap', 'doc_feelgood', 'rusty'],
   },
 
   rusty: {
@@ -94,6 +97,7 @@ export const ENTITY_DEFS = {
     sprite: { char: 'R', fg: Colors.NPC_FRIENDLY, bg: 'transparent' },
     blocking: true,
     dialogId: 'rusty_intro',
+    allies: ['scarlett', 'mayor_bottlecap', 'doc_feelgood'],
   },
 
   mayor_bottlecap: {
@@ -104,6 +108,7 @@ export const ENTITY_DEFS = {
     sprite: { char: 'M', fg: Colors.NPC_FRIENDLY, bg: 'transparent' },
     blocking: true,
     dialogId: 'mayor_intro',
+    allies: ['scarlett', 'doc_feelgood', 'rusty'],
   },
 
   doc_feelgood: {
@@ -114,6 +119,7 @@ export const ENTITY_DEFS = {
     sprite: { char: 'D', fg: Colors.NPC_FRIENDLY, bg: 'transparent' },
     blocking: true,
     dialogId: 'doc_intro',
+    allies: ['scarlett', 'mayor_bottlecap', 'rusty'],
   },
 
   wasteland_trader: {

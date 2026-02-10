@@ -175,6 +175,14 @@ export class DialogSystem {
         case 'caps':
           if (this.game.player.caps < cond.min) return false;
           break;
+
+        case 'reputation':
+          if (this.game.getReputation(cond.npcId) < cond.min) return false;
+          break;
+
+        case 'reputationMax':
+          if (this.game.getReputation(cond.npcId) > cond.max) return false;
+          break;
       }
     }
 
@@ -275,6 +283,14 @@ export class DialogSystem {
           if (effect.map) {
             eventBus.emit(Events.MAP_CHANGE, effect.map, effect.spawn || 'start');
           }
+          break;
+
+        case 'changeReputation':
+          this.game.changeReputation(effect.npcId, effect.amount);
+          break;
+
+        case 'setReputation':
+          this.game.setReputation(effect.npcId, effect.value);
           break;
       }
     }

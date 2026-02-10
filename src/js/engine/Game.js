@@ -3,7 +3,7 @@
  * Main game loop, state management, and system coordination.
  */
 
-import { GameState } from '../core/constants.js';
+import { GameState, REP_MIN, REP_MAX, REP_DEFAULT, REP_HOSTILE } from '../core/constants.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { findPath, computeFOV } from '../core/utils.js';
 import { Camera } from './Camera.js';
@@ -61,6 +61,9 @@ export class Game {
     // Story flags
     this.flags = {};
 
+    // NPC reputation: entityId -> integer
+    this.reputation = {};
+
     this._bindEvents();
   }
 
@@ -111,8 +114,9 @@ export class Game {
     this.inventorySystem.addItem('stimpak');
     this.inventorySystem.addItem('stimpak');
 
-    // Reset flags and quests
+    // Reset flags, quests, and reputation
     this.flags = {};
+    this.reputation = {};
     this.questSystem.reset();
 
     // Load starting map
@@ -137,6 +141,14 @@ export class Game {
    * Load a map and place the player at a spawn point.
    */
   loadMap(mapId, spawnPoint) {
+    // Save current map entity states before switching
+    if (this.mapSystem.currentMapId && this.entities.length > 0) {
+      this.mapSystem.entityStates[this.mapSystem.currentMapId] = this.entities.map(e => ({
+        ...e,
+        position: { ...e.position },
+      }));
+    }
+
     const mapData = this.mapSystem.loadMap(mapId);
     if (!mapData) {
       console.error(`Map not found: ${mapId}`);
@@ -340,7 +352,8 @@ export class Game {
     // Check entity collision
     const blockingEntity = this._getBlockingEntityAt(newX, newY);
     if (blockingEntity) {
-      if (blockingEntity.hostile) {
+      const isHostile = blockingEntity.hostile || this.getReputation(blockingEntity.id) <= REP_HOSTILE;
+      if (isHostile) {
         this.combatSystem.startCombat(blockingEntity);
       } else {
         this._interactWith(blockingEntity);
@@ -574,6 +587,7 @@ export class Game {
     return {
       player: JSON.parse(JSON.stringify(this.player)),
       flags: { ...this.flags },
+      reputation: { ...this.reputation },
       quests: this.questSystem.getState(),
       inventory: this.inventorySystem.getState(),
       entities: this.mapSystem.getEntityStates(),
@@ -589,6 +603,7 @@ export class Game {
   loadState(saveData) {
     this.player = saveData.player;
     this.flags = saveData.flags;
+    this.reputation = saveData.reputation || {};
     this.questSystem.loadState(saveData.quests);
     this.inventorySystem.loadState(saveData.inventory);
     this.mapSystem.loadEntityStates(saveData.entities);
@@ -615,5 +630,22 @@ export class Game {
   setFlag(key, value = true) {
     this.flags[key] = value;
     eventBus.emit(Events.FLAG_SET, key, value);
+  }
+
+  getReputation(npcId) {
+    return this.reputation[npcId] ?? REP_DEFAULT;
+  }
+
+  changeReputation(npcId, delta) {
+    const old = this.getReputation(npcId);
+    const value = Math.max(REP_MIN, Math.min(REP_MAX, old + delta));
+    this.reputation[npcId] = value;
+    eventBus.emit(Events.REPUTATION_CHANGE, npcId, value, old);
+  }
+
+  setReputation(npcId, value) {
+    const old = this.getReputation(npcId);
+    this.reputation[npcId] = Math.max(REP_MIN, Math.min(REP_MAX, value));
+    eventBus.emit(Events.REPUTATION_CHANGE, npcId, this.reputation[npcId], old);
   }
 }
