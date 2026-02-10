@@ -100,22 +100,47 @@ export class MapSystem {
 
   /**
    * Interact with a tile (e.g., open a door).
+   * Checks object grid first, then ground grid.
    */
   interactTile(x, y) {
     const mapData = this.getCurrentMap();
-    if (!mapData || !mapData.objectGrid) return;
+    if (!mapData) return;
 
-    const tileId = mapData.objectGrid[y][x];
+    // Find the interactive tile - check object grid first, then ground
+    let tileId = Tiles.VOID;
+    let grid = null;
+
+    if (mapData.objectGrid) {
+      const objTile = mapData.objectGrid[y][x];
+      if (objTile !== Tiles.VOID) {
+        const props = TILE_PROPS[objTile];
+        if (props && props.interactable) {
+          tileId = objTile;
+          grid = mapData.objectGrid;
+        }
+      }
+    }
+
+    if (grid === null) {
+      const groundTile = mapData.groundGrid[y][x];
+      const props = TILE_PROPS[groundTile];
+      if (props && props.interactable) {
+        tileId = groundTile;
+        grid = mapData.groundGrid;
+      }
+    }
+
+    if (!grid) return;
 
     switch (tileId) {
       case Tiles.DOOR_CLOSED:
-        mapData.objectGrid[y][x] = Tiles.DOOR_OPEN;
+        grid[y][x] = Tiles.DOOR_OPEN;
         eventBus.emit(Events.UI_MESSAGE, 'action', 'You open the door.');
         this.game.updateFOV();
         break;
 
       case Tiles.DOOR_OPEN:
-        mapData.objectGrid[y][x] = Tiles.DOOR_CLOSED;
+        grid[y][x] = Tiles.DOOR_CLOSED;
         eventBus.emit(Events.UI_MESSAGE, 'action', 'You close the door.');
         this.game.updateFOV();
         break;
@@ -125,11 +150,11 @@ export class MapSystem {
         const lockpickSkill = this.game.player.skills.lockpick || 0;
 
         if (hasKey) {
-          mapData.objectGrid[y][x] = Tiles.DOOR_OPEN;
+          grid[y][x] = Tiles.DOOR_OPEN;
           eventBus.emit(Events.UI_MESSAGE, 'action', 'You unlock the door with the key.');
           this.game.updateFOV();
         } else if (lockpickSkill >= 30) {
-          mapData.objectGrid[y][x] = Tiles.DOOR_OPEN;
+          grid[y][x] = Tiles.DOOR_OPEN;
           eventBus.emit(Events.UI_MESSAGE, 'action',
             'You pick the lock with the finesse of someone who definitely didn\'t learn this from a cereal box manual.');
           this.game.updateFOV();

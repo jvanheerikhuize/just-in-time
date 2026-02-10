@@ -74,13 +74,14 @@ export function base64ToUint8(base64) {
 
 /**
  * Find a path from start to end on a tile grid.
+ * Checks both ground and object grids for walkability.
  * Returns array of {x, y} positions, or empty array if no path.
  */
-export function findPath(grid, start, end, maxSteps = 200) {
-  const width = grid[0].length;
-  const height = grid.length;
+export function findPath(groundGrid, start, end, maxSteps = 200, objectGrid = null) {
+  const width = groundGrid[0].length;
+  const height = groundGrid.length;
 
-  if (!isWalkable(grid, end.x, end.y)) return [];
+  if (!isWalkable(groundGrid, end.x, end.y, objectGrid)) return [];
   if (start.x === end.x && start.y === end.y) return [];
 
   const key = (x, y) => `${x},${y}`;
@@ -121,14 +122,14 @@ export function findPath(grid, start, end, maxSteps = 200) {
 
       if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
       if (closed.has(nk)) continue;
-      if (!isWalkable(grid, nx, ny)) continue;
+      if (!isWalkable(groundGrid, nx, ny, objectGrid)) continue;
 
       // Diagonal movement costs more
       const isDiag = dir.x !== 0 && dir.y !== 0;
       // Don't allow diagonal movement through walls
       if (isDiag) {
-        if (!isWalkable(grid, current.x + dir.x, current.y) ||
-            !isWalkable(grid, current.x, current.y + dir.y)) continue;
+        if (!isWalkable(groundGrid, current.x + dir.x, current.y, objectGrid) ||
+            !isWalkable(groundGrid, current.x, current.y + dir.y, objectGrid)) continue;
       }
 
       const tentG = gScore.get(ck) + (isDiag ? 1.414 : 1);
@@ -144,11 +145,20 @@ export function findPath(grid, start, end, maxSteps = 200) {
   return []; // No path found
 }
 
-function isWalkable(grid, x, y) {
-  if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return false;
-  const tileId = grid[y][x];
-  const props = TILE_PROPS[tileId];
-  return props ? props.walkable : false;
+function isWalkable(groundGrid, x, y, objectGrid = null) {
+  if (y < 0 || y >= groundGrid.length || x < 0 || x >= groundGrid[0].length) return false;
+  const groundTile = groundGrid[y][x];
+  const groundProps = TILE_PROPS[groundTile];
+  if (!groundProps || !groundProps.walkable) return false;
+
+  if (objectGrid) {
+    const objTile = objectGrid[y][x];
+    if (objTile) {
+      const objProps = TILE_PROPS[objTile];
+      if (objProps && !objProps.walkable) return false;
+    }
+  }
+  return true;
 }
 
 /** Min-heap for A* open set */
@@ -196,13 +206,14 @@ class MinHeap {
 
 /**
  * Compute visible tiles from origin within radius.
+ * Checks both ground and object grids for transparency.
  * Returns Set of "x,y" strings for visible positions.
  */
-export function computeFOV(grid, originX, originY, radius) {
+export function computeFOV(groundGrid, originX, originY, radius, objectGrid = null) {
   const visible = new Set();
   visible.add(`${originX},${originY}`);
 
-  const steps = 72; // Number of rays
+  const steps = 360;
   for (let i = 0; i < steps; i++) {
     const angle = (i / steps) * Math.PI * 2;
     const dx = Math.cos(angle);
@@ -212,13 +223,23 @@ export function computeFOV(grid, originX, originY, radius) {
       const x = Math.round(originX + dx * dist);
       const y = Math.round(originY + dy * dist);
 
-      if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) break;
+      if (y < 0 || y >= groundGrid.length || x < 0 || x >= groundGrid[0].length) break;
 
       visible.add(`${x},${y}`);
 
-      const tileId = grid[y][x];
-      const props = TILE_PROPS[tileId];
-      if (!props || !props.transparent) break;
+      // Check ground grid transparency
+      const groundTile = groundGrid[y][x];
+      const groundProps = TILE_PROPS[groundTile];
+      if (!groundProps || !groundProps.transparent) break;
+
+      // Check object grid transparency
+      if (objectGrid) {
+        const objTile = objectGrid[y][x];
+        if (objTile) {
+          const objProps = TILE_PROPS[objTile];
+          if (objProps && !objProps.transparent) break;
+        }
+      }
     }
   }
 

@@ -246,7 +246,7 @@ export class Game {
         }
       } else {
         // Move to tile
-        const path = findPath(mapData.groundGrid, this.player.position, target);
+        const path = findPath(mapData.groundGrid, this.player.position, target, 200, mapData.objectGrid);
         if (path.length > 0) {
           this.currentPath = path;
         }
@@ -320,8 +320,12 @@ export class Game {
     const objTile = mapData.objectGrid ? mapData.objectGrid[newY][newX] : 0;
     const objProps = objTile ? this.mapSystem.getTileProps(objTile) : null;
 
-    // Handle doors
+    // Handle doors (check object grid then ground grid)
     if (objProps && objProps.interactable && !objProps.walkable) {
+      this.mapSystem.interactTile(newX, newY);
+      return false;
+    }
+    if (groundProps.interactable && !groundProps.walkable) {
       this.mapSystem.interactTile(newX, newY);
       return false;
     }
@@ -397,7 +401,7 @@ export class Game {
       const ax = tx + off.x;
       const ay = ty + off.y;
       if (ax === this.player.position.x && ay === this.player.position.y) return [];
-      const path = findPath(mapData.groundGrid, this.player.position, { x: ax, y: ay });
+      const path = findPath(mapData.groundGrid, this.player.position, { x: ax, y: ay }, 200, mapData.objectGrid);
       if (path.length > 0 && (!bestPath || path.length < bestPath.length)) {
         bestPath = path;
       }
@@ -437,19 +441,30 @@ export class Game {
       }
     }
 
-    // Check tile interactions
+    // Check tile interactions (object grid then ground grid)
     const mapData = this.mapSystem.getCurrentMap();
-    if (mapData && mapData.objectGrid) {
+    if (mapData) {
       for (const off of offsets) {
         const tx = px + off.x;
         const ty = py + off.y;
-        if (ty >= 0 && ty < mapData.height && tx >= 0 && tx < mapData.width) {
-          const tileId = mapData.objectGrid[ty][tx];
-          const props = this.mapSystem.getTileProps(tileId);
-          if (props && props.interactable) {
+        if (ty < 0 || ty >= mapData.height || tx < 0 || tx >= mapData.width) continue;
+
+        // Check object grid first
+        if (mapData.objectGrid) {
+          const objTile = mapData.objectGrid[ty][tx];
+          const objProps = this.mapSystem.getTileProps(objTile);
+          if (objProps && objProps.interactable) {
             this.mapSystem.interactTile(tx, ty);
             return;
           }
+        }
+
+        // Check ground grid
+        const groundTile = mapData.groundGrid[ty][tx];
+        const groundProps = this.mapSystem.getTileProps(groundTile);
+        if (groundProps && groundProps.interactable) {
+          this.mapSystem.interactTile(tx, ty);
+          return;
         }
       }
     }
@@ -507,7 +522,8 @@ export class Game {
       mapData.groundGrid,
       this.player.position.x,
       this.player.position.y,
-      this.fovRadius
+      this.fovRadius,
+      mapData.objectGrid
     );
   }
 

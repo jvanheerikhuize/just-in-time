@@ -116,7 +116,7 @@ export class Renderer {
     const dx = cx - HW;
     const dy = cy - HH - sprite.offsetY;
 
-    if (!lit) this.ctx.globalAlpha = 0.4;
+    if (!lit) this.ctx.globalAlpha = 0.65;
     this.ctx.drawImage(sprite.canvas, dx, dy);
     if (!lit) this.ctx.globalAlpha = 1;
   }
