@@ -3,9 +3,10 @@
  * Main game loop, state management, and system coordination.
  */
 
-import { GameState, REP_MIN, REP_MAX, REP_DEFAULT, REP_HOSTILE } from '../core/constants.js';
+import { GameState, REP_MIN, REP_MAX, REP_DEFAULT, REP_HOSTILE, ANIM_ATTACK_MS } from '../core/constants.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { findPath, computeFOV } from '../core/utils.js';
+import { FACING_TO_DIR } from '../data/sprites.js';
 import { Camera } from './Camera.js';
 import { Renderer } from './Renderer.js';
 import { Input } from './Input.js';
@@ -57,6 +58,7 @@ export class Game {
     // Time
     this.lastTime = 0;
     this.accumulator = 0;
+    this.gameTime = 0;
 
     // Story flags
     this.flags = {};
@@ -176,6 +178,11 @@ export class Game {
     // Clear path
     this.currentPath = [];
 
+    // Prune stale entity animation states
+    const activeIds = new Set(this.entities.map(e => e.instanceId || e.id));
+    activeIds.add('player');
+    this.renderer.entitySprites.pruneAnimStates(activeIds);
+
     eventBus.emit(Events.MAP_LOADED, mapId);
     eventBus.emit(Events.UI_MESSAGE, 'system', `Entered: ${mapData.name}`);
   }
@@ -207,6 +214,8 @@ export class Game {
    * Update game logic.
    */
   update(dt) {
+    this.gameTime += dt;
+
     // Update camera
     const mapData = this.mapSystem.getCurrentMap();
     if (mapData) {
@@ -289,6 +298,12 @@ export class Game {
       }
     }
 
+    // Return to idle animation when not moving
+    if (this.currentPath.length === 0 && !dir) {
+      const idleDir = FACING_TO_DIR[`${this.player.facing.x},${this.player.facing.y}`] || 'south';
+      this.renderer.entitySprites.setAnimation('player', `idle_${idleDir}`);
+    }
+
     // Interact key (E or Space)
     if (this.input.isKeyJustPressed('e') || this.input.isKeyJustPressed(' ')) {
       this._interactNearby();
@@ -323,6 +338,10 @@ export class Game {
   _tryMovePlayer(dx, dy) {
     // Always update facing direction, even if move is blocked
     this.player.facing = { x: dx, y: dy };
+
+    // Set walk animation for player
+    const dir = FACING_TO_DIR[`${dx},${dy}`] || 'south';
+    this.renderer.entitySprites.setAnimation('player', `walk_${dir}`);
 
     const newX = this.player.position.x + dx;
     const newY = this.player.position.y + dy;
@@ -560,7 +579,7 @@ export class Game {
     // Draw scene (map + entities + player, depth-sorted)
     this.renderer.drawScene(
       mapData, this.camera, this.fovSet, this.player.mapId,
-      this.entities, this.player
+      this.entities, this.player, this.gameTime
     );
 
     // Draw path preview

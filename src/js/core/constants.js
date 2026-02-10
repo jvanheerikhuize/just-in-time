@@ -84,6 +84,11 @@ export const COVER_DEFENSE_BONUS = 25;
 export const FLANKING_ATTACK_BONUS = 15;
 export const CRIT_MULTIPLIER_BASE = 1.5;
 
+// ---- Animation ----
+export const ANIM_DEFAULT_FRAME_MS = 150;
+export const ANIM_HURT_MS = 500;
+export const ANIM_ATTACK_MS = 400;
+
 // ---- Entity Types ----
 export const EntityType = {
   PLAYER: 'player',

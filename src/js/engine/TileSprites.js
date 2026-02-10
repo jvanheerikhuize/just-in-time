@@ -6,6 +6,7 @@
  */
 
 import { ISO_TILE_W, ISO_TILE_H, ISO_TILE_DEPTH, Tiles, TILE_PROPS } from '../core/constants.js';
+import { SpriteSheet } from './SpriteSheet.js';
 
 const HW = ISO_TILE_W / 2;   // 32
 const HH = ISO_TILE_H / 2;   // 16
@@ -30,6 +31,7 @@ const WATER_TILES = new Set([
 export class TileSprites {
   constructor() {
     this.cache = new Map();
+    this._externalCache = new Map();
     this._init();
   }
 
@@ -51,7 +53,26 @@ export class TileSprites {
   }
 
   get(tileId) {
-    return this.cache.get(tileId);
+    return this._externalCache.get(tileId) || this.cache.get(tileId);
+  }
+
+  /**
+   * Load an external tileset PNG to override procedural tiles.
+   * @param {string} url - Path to tileset PNG
+   * @param {Object} tileMapping - Maps tileId → {col, row} in spritesheet
+   * @param {number} cellW - Cell width in pixels
+   * @param {number} cellH - Cell height in pixels
+   */
+  async loadTileset(url, tileMapping, cellW, cellH) {
+    const sheet = new SpriteSheet({ cellWidth: cellW, cellHeight: cellH });
+    await sheet.load(url);
+    for (const [tileId, { col, row }] of Object.entries(tileMapping)) {
+      const cell = sheet.getCell(col, row);
+      this._externalCache.set(+tileId, {
+        canvas: cell.canvas,
+        offsetY: 0,
+      });
+    }
   }
 
   // ================================================================

@@ -40,6 +40,7 @@ Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas (isometric pixel-
 - **Facing**: Player `facing: {x, y}` vector updated on every move attempt. Rendered as isometric chevron + compass HUD.
 - **Entity Persistence**: Dead enemies and looted containers persist across map transitions via `MapSystem.entityStates`.
 - **Isometric Rendering**: Painter's algorithm depth sort. Tile sprites pre-rendered in `TileSprites.js`. Player/entities drawn at isometric screen positions.
+- **Sprite Animation**: `EntitySprites.js` manages per-entity animation state (idle/walk/attack/hurt). Procedural fallback frames generated if no external spritesheets loaded. Animation definitions in `data/sprites.js`.
 
 ## Key Files
 
@@ -49,6 +50,9 @@ Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas (isometric pixel-
 | Game engine | `src/js/engine/Game.js` |
 | Isometric renderer | `src/js/engine/Renderer.js` |
 | Tile sprite cache | `src/js/engine/TileSprites.js` |
+| Spritesheet loader | `src/js/engine/SpriteSheet.js` |
+| Entity sprite manager | `src/js/engine/EntitySprites.js` |
+| Sprite definitions | `src/js/data/sprites.js` |
 | All constants | `src/js/core/constants.js` |
 | EventBus | `src/js/core/EventBus.js` |
 | UI controller | `src/js/ui/UIManager.js` |

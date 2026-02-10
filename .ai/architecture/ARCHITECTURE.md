@@ -84,8 +84,8 @@ No external systems. No server. No API. Fully client-side.
 │  │  (Canvas 2D)      │◄────EventBus───┘                        │
 │  │  - Tile drawing   │                                         │
 │  │  - FOV/fog        │                                         │
-│  │  - Entity sprites │                                         │
-│  │  - Path preview   │                                         │
+│  │  - Entity sprites │ ◄── EntitySprites (animated)            │
+│  │  - Path preview   │ ◄── TileSprites + SpriteSheet           │
 │  └──────────────────┘                                         │
 └─────────────────────────────────────────────────────────────┘
                              │
@@ -145,7 +145,10 @@ No external systems. No server. No API. Fully client-side.
 |-----------|---------|------------|----------|
 | Game | Main game loop, state machine, system coordinator | Vanilla JS class | `engine/Game.js` |
 | Camera | Viewport management, screen-to-tile conversion | Vanilla JS class | `engine/Camera.js` |
-| Renderer | Canvas 2D tile rendering, fog of war, entity drawing | Canvas API | `engine/Renderer.js` |
+| Renderer | Canvas 2D tile rendering, fog of war, depth-sorted scene | Canvas API | `engine/Renderer.js` |
+| TileSprites | Procedural tile sprite cache with external tileset loading | Canvas API | `engine/TileSprites.js` |
+| SpriteSheet | Generic spritesheet loader with animation frame management | Canvas API | `engine/SpriteSheet.js` |
+| EntitySprites | Entity/player sprite animation with procedural fallback | Canvas API | `engine/EntitySprites.js` |
 | Input | Keyboard and mouse input with click queue | DOM events | `engine/Input.js` |
 | MapSystem | Map loading, base64 decode, tile lookups, entity placement | Vanilla JS class | `systems/MapSystem.js` |
 | CharacterSystem | W.A.S.T.E.D. attributes, skill calculation, level-up | Vanilla JS class | `systems/CharacterSystem.js` |
@@ -408,7 +411,10 @@ src/
     ├── engine/        # Game loop and rendering
     │   ├── Game.js        # Main game class
     │   ├── Camera.js      # Viewport camera
-    │   ├── Renderer.js    # Canvas tile renderer
+    │   ├── Renderer.js    # Isometric scene renderer (depth-sorted)
+    │   ├── TileSprites.js # Procedural tile sprites + external tileset
+    │   ├── SpriteSheet.js # Generic spritesheet loader + animation
+    │   ├── EntitySprites.js # Entity/player animation manager
     │   └── Input.js       # Keyboard + mouse
     ├── systems/       # Game logic systems
     │   ├── MapSystem.js
@@ -425,7 +431,8 @@ src/
         ├── entities.js    # NPCs, enemies, containers
         ├── items.js       # Weapons, armor, consumables
         ├── quests.js      # Quest stages and objectives
-        └── dialogs.js     # Branching dialog trees
+        ├── dialogs.js     # Branching dialog trees
+        └── sprites.js     # Sprite animation definitions
 ```
 
 ### 8.2 Key Patterns
@@ -440,6 +447,8 @@ src/
 | A* pathfinding | Click-to-move navigation | `findPath(grid, start, end, maxSteps)` |
 | Raycasting FOV | Visibility computation | `computeFOV(grid, x, y, radius)` |
 | Seeded random | Deterministic randomness | `rng.int(min, max)`, `rng.chance(percent)` |
+| Spritesheet animation | Entity rendering with frame-based animation | `EntitySprites.drawEntity()`, `SpriteSheet.getFrameAt()` |
+| Procedural fallback | Generate sprites if no external assets loaded | `EntitySprites._makeHumanoidFrame()`, `TileSprites._init()` |
 
 ### 8.3 Cross-Cutting Concerns
 
@@ -462,7 +471,7 @@ src/
 | Technology | Status | Notes |
 |------------|--------|-------|
 | Vanilla JavaScript (ES Modules) | Adopt | No framework; direct browser execution |
-| HTML5 Canvas 2D | Adopt | Tile-based ASCII rendering |
+| HTML5 Canvas 2D | Adopt | Isometric pixel rendering with spritesheet animation |
 | CSS (single file) | Adopt | Retro terminal green-on-black theme |
 | LocalStorage | Adopt | Client-side save game persistence |
 | `npx serve` | Adopt (dev only) | Zero-config static file server for development |

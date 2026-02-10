@@ -2,10 +2,12 @@
  * JUST IN TIME - Isometric Renderer
  * Draws the game world on a canvas using isometric tile-based rendering.
  * Tiles and entities are depth-sorted using the painter's algorithm.
+ * Entity and player sprites are managed by EntitySprites with animation support.
  */
 
-import { ISO_TILE_W, ISO_TILE_H, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_PROPS, Colors, Tiles } from '../core/constants.js';
+import { ISO_TILE_W, ISO_TILE_H, CANVAS_WIDTH, CANVAS_HEIGHT, Tiles } from '../core/constants.js';
 import { TileSprites } from './TileSprites.js';
+import { EntitySprites } from './EntitySprites.js';
 
 const HW = ISO_TILE_W / 2;
 const HH = ISO_TILE_H / 2;
@@ -18,6 +20,7 @@ export class Renderer {
     this.canvas.height = CANVAS_HEIGHT;
 
     this.tileSprites = new TileSprites();
+    this.entitySprites = new EntitySprites();
 
     // Explored tiles memory (fog of war)
     this.explored = new Map(); // mapId -> Set of "x,y"
@@ -33,8 +36,15 @@ export class Renderer {
 
   /**
    * Draw the full scene: map tiles, entities, and player, all depth-sorted.
+   * @param {Object} mapData
+   * @param {Object} camera
+   * @param {Set} fovSet
+   * @param {string} mapId
+   * @param {Array} entities
+   * @param {Object} player
+   * @param {number} gameTime - Total elapsed game time in ms (for animation)
    */
-  drawScene(mapData, camera, fovSet, mapId, entities, player) {
+  drawScene(mapData, camera, fovSet, mapId, entities, player, gameTime) {
     if (!mapData || !mapData.groundGrid) return;
 
     // Fog of war tracking
@@ -86,22 +96,36 @@ export class Renderer {
         }
       }
 
-      // Draw entities at this depth
+      // Draw entities at this depth (via EntitySprites)
       const ents = entityByDepth.get(depth);
       if (ents) {
         for (const ent of ents) {
           const posKey = `${ent.position.x},${ent.position.y}`;
           const visible = fovSet ? fovSet.has(posKey) : true;
-          if (!visible) continue; // entities only shown when in FOV
+          if (!visible) continue;
           const screen = camera.tileToScreen(ent.position.x, ent.position.y);
-          this._drawEntity(screen.x, screen.y, ent);
+          this.entitySprites.drawEntity(this.ctx, screen.x, screen.y, ent, gameTime);
         }
       }
 
-      // Draw player at correct depth
+      // Draw player at correct depth (via EntitySprites + ground effects)
       if (depth === playerDepth) {
         const screen = camera.tileToScreen(player.position.x, player.position.y);
-        this._drawPlayer(screen.x, screen.y, player.facing);
+
+        // Ground glow (before sprite for correct depth layering)
+        this.ctx.fillStyle = 'rgba(51, 255, 51, 0.08)';
+        this._fillDiamond(screen.x, screen.y, HW, HH);
+
+        // Player sprite (with animation)
+        this.entitySprites.drawPlayer(this.ctx, screen.x, screen.y, player, gameTime);
+
+        // Facing direction chevron (after sprite)
+        this._drawFacingChevron(screen.x, screen.y, player.facing);
+
+        // Tile highlight ring (after sprite)
+        this.ctx.strokeStyle = 'rgba(51, 255, 51, 0.25)';
+        this.ctx.lineWidth = 1;
+        this._strokeDiamond(screen.x, screen.y, HW + 2, HH + 1);
       }
     }
   }
@@ -122,191 +146,28 @@ export class Renderer {
   }
 
   /**
-   * Draw an entity (NPC, enemy, container) as a detailed figure.
+   * Draw the player's facing direction chevron on the ground plane.
    */
-  _drawEntity(cx, cy, entity) {
-    const color = entity.sprite?.fg || Colors.WHITE;
+  _drawFacingChevron(cx, cy, facing) {
+    if (!facing) return;
 
-    // Ground shadow ellipse
-    this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    // Map tile direction to isometric screen offset
+    // N(0,-1)→upper-right, S(0,1)→lower-left, W(-1,0)→upper-left, E(1,0)→lower-right
+    const isoX = (facing.x - facing.y) * 0.5;
+    const isoY = (facing.x + facing.y) * 0.25;
+    const dist = 16;
+    const ax = cx + isoX * dist;
+    const ay = cy + isoY * dist;
+
+    this.ctx.fillStyle = 'rgba(51, 255, 51, 0.5)';
     this.ctx.beginPath();
-    this.ctx.ellipse(cx, cy + 2, 10, 5, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    if (entity.type === 'container') {
-      // Small crate/chest shape
-      this.ctx.fillStyle = this._shade(color, 0.8);
-      this.ctx.fillRect(cx - 7, cy - 8, 14, 10);
-      // Lid
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(cx - 8, cy - 10, 16, 3);
-      // Clasp
-      this.ctx.fillStyle = '#dd8';
-      this.ctx.fillRect(cx - 1, cy - 6, 2, 2);
-    } else if (entity.type === 'item_pickup') {
-      // Glowing item orb
-      this.ctx.fillStyle = color;
-      this.ctx.globalAlpha = 0.6;
-      this.ctx.beginPath();
-      this.ctx.arc(cx, cy - 6, 5, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.globalAlpha = 1;
-      // Specular highlight
-      this.ctx.fillStyle = '#fff';
-      this.ctx.globalAlpha = 0.5;
-      this.ctx.beginPath();
-      this.ctx.arc(cx - 1, cy - 7, 2, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.globalAlpha = 1;
-    } else {
-      // Humanoid figure with detail
-      const dark = this._shade(color, 0.6);
-      const mid = this._shade(color, 0.8);
-
-      // Head (skin tone base + colored hair/hat)
-      this.ctx.fillStyle = '#dca';
-      this.ctx.beginPath();
-      this.ctx.arc(cx, cy - 22, 4, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.fillStyle = dark;
-      this.ctx.beginPath();
-      this.ctx.arc(cx, cy - 23, 4, Math.PI, 0);
-      this.ctx.fill();
-
-      // Torso
-      this.ctx.fillStyle = color;
-      this.ctx.beginPath();
-      this.ctx.moveTo(cx - 5, cy - 17);
-      this.ctx.lineTo(cx + 5, cy - 17);
-      this.ctx.lineTo(cx + 4, cy - 6);
-      this.ctx.lineTo(cx - 4, cy - 6);
-      this.ctx.closePath();
-      this.ctx.fill();
-      // Right-side shading
-      this.ctx.fillStyle = dark;
-      this.ctx.globalAlpha = 0.3;
-      this.ctx.beginPath();
-      this.ctx.moveTo(cx + 1, cy - 17);
-      this.ctx.lineTo(cx + 5, cy - 17);
-      this.ctx.lineTo(cx + 4, cy - 6);
-      this.ctx.lineTo(cx + 1, cy - 6);
-      this.ctx.closePath();
-      this.ctx.fill();
-      this.ctx.globalAlpha = 1;
-
-      // Arms
-      this.ctx.fillStyle = mid;
-      this.ctx.fillRect(cx - 7, cy - 16, 2, 8);
-      this.ctx.fillRect(cx + 5, cy - 16, 2, 8);
-
-      // Belt
-      this.ctx.fillStyle = this._shade(color, 0.5);
-      this.ctx.fillRect(cx - 4, cy - 7, 8, 1);
-
-      // Legs
-      this.ctx.fillStyle = dark;
-      this.ctx.fillRect(cx - 3, cy - 6, 2, 6);
-      this.ctx.fillRect(cx + 1, cy - 6, 2, 6);
-    }
-  }
-
-  /**
-   * Draw the player character with a green glow and detailed figure.
-   */
-  _drawPlayer(cx, cy, facing) {
-    // Glow on ground
-    this.ctx.fillStyle = 'rgba(51, 255, 51, 0.08)';
-    this._fillDiamond(cx, cy, HW, HH);
-
-    // Ground shadow ellipse
-    this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    this.ctx.beginPath();
-    this.ctx.ellipse(cx, cy + 2, 12, 6, 0, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    const green = Colors.PLAYER;
-    const darkGreen = '#1a8a1a';
-    const midGreen = '#28cc28';
-
-    // Head (skin tone + green helmet/hat)
-    this.ctx.fillStyle = '#dca';
-    this.ctx.beginPath();
-    this.ctx.arc(cx, cy - 24, 5, 0, Math.PI * 2);
-    this.ctx.fill();
-    this.ctx.fillStyle = darkGreen;
-    this.ctx.beginPath();
-    this.ctx.arc(cx, cy - 25, 5, Math.PI, 0);
-    this.ctx.fill();
-
-    // Torso
-    this.ctx.fillStyle = green;
-    this.ctx.beginPath();
-    this.ctx.moveTo(cx - 6, cy - 18);
-    this.ctx.lineTo(cx + 6, cy - 18);
-    this.ctx.lineTo(cx + 5, cy - 5);
-    this.ctx.lineTo(cx - 5, cy - 5);
+    const perpX = -isoY;
+    const perpY = isoX;
+    this.ctx.moveTo(ax + isoX * 5, ay + isoY * 5);
+    this.ctx.lineTo(ax - perpX * 3, ay - perpY * 3);
+    this.ctx.lineTo(ax + perpX * 3, ay + perpY * 3);
     this.ctx.closePath();
     this.ctx.fill();
-    // Right-side shading
-    this.ctx.fillStyle = darkGreen;
-    this.ctx.globalAlpha = 0.35;
-    this.ctx.beginPath();
-    this.ctx.moveTo(cx + 1, cy - 18);
-    this.ctx.lineTo(cx + 6, cy - 18);
-    this.ctx.lineTo(cx + 5, cy - 5);
-    this.ctx.lineTo(cx + 1, cy - 5);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.globalAlpha = 1;
-
-    // Arms
-    this.ctx.fillStyle = midGreen;
-    this.ctx.fillRect(cx - 8, cy - 17, 2, 9);
-    this.ctx.fillRect(cx + 6, cy - 17, 2, 9);
-
-    // Belt
-    this.ctx.fillStyle = '#654';
-    this.ctx.fillRect(cx - 5, cy - 6, 10, 2);
-    // Belt buckle
-    this.ctx.fillStyle = '#dd8';
-    this.ctx.fillRect(cx - 1, cy - 6, 2, 2);
-
-    // Legs
-    this.ctx.fillStyle = darkGreen;
-    this.ctx.fillRect(cx - 4, cy - 4, 3, 6);
-    this.ctx.fillRect(cx + 1, cy - 4, 3, 6);
-
-    // Boots
-    this.ctx.fillStyle = '#543';
-    this.ctx.fillRect(cx - 4, cy + 1, 3, 2);
-    this.ctx.fillRect(cx + 1, cy + 1, 3, 2);
-
-    // Facing direction chevron on ground plane
-    if (facing) {
-      // Map tile direction to isometric screen offset
-      // N(0,-1)→upper-right, S(0,1)→lower-left, W(-1,0)→upper-left, E(1,0)→lower-right
-      const isoX = (facing.x - facing.y) * 0.5;
-      const isoY = (facing.x + facing.y) * 0.25;
-      const dist = 16;
-      const ax = cx + isoX * dist;
-      const ay = cy + isoY * dist;
-
-      this.ctx.fillStyle = 'rgba(51, 255, 51, 0.5)';
-      this.ctx.beginPath();
-      // Small triangle pointing in the facing direction
-      const perpX = -isoY;
-      const perpY = isoX;
-      this.ctx.moveTo(ax + isoX * 5, ay + isoY * 5);
-      this.ctx.lineTo(ax - perpX * 3, ay - perpY * 3);
-      this.ctx.lineTo(ax + perpX * 3, ay + perpY * 3);
-      this.ctx.closePath();
-      this.ctx.fill();
-    }
-
-    // Tile highlight ring
-    this.ctx.strokeStyle = 'rgba(51, 255, 51, 0.25)';
-    this.ctx.lineWidth = 1;
-    this._strokeDiamond(cx, cy, HW + 2, HH + 1);
   }
 
   /**
@@ -350,15 +211,6 @@ export class Renderer {
         this._fillDiamond(s.x, s.y, HW, HH);
       }
     }
-  }
-
-  // ---- Color helpers ----
-
-  _shade(hex, factor) {
-    const parse = hex.length === 4
-      ? [parseInt(hex[1], 16) * 17, parseInt(hex[2], 16) * 17, parseInt(hex[3], 16) * 17]
-      : [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
-    return `rgb(${Math.floor(parse[0] * factor)},${Math.floor(parse[1] * factor)},${Math.floor(parse[2] * factor)})`;
   }
 
   // ---- Diamond drawing helpers (centered on cx, cy) ----

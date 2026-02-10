@@ -62,6 +62,7 @@
 - 2026-02-10: Faction allies system (killing entity penalizes rep with allies)
 - 2026-02-10: Entity persistence across map transitions (dead enemies stay dead, looted containers stay empty)
 - 2026-02-10: Minimap entity colors based on reputation tier
+- 2026-02-10: Spritesheet-based entity rendering with animation support (SpriteSheet, EntitySprites, sprites.js)
 - 2026-02-10: Isometric pixel-based renderer (replaced ASCII tile rendering)
 - 2026-02-09: Initial commit with v0.1.0 "Unfrozen" first playable release
 - 2026-02-09: Implemented W.A.S.T.E.D. attribute system, turn-based combat, branching dialog trees
@@ -160,8 +161,10 @@ src/
     ├── engine/
     │   ├── Game.js           # Main game class: state, loop, input handling
     │   ├── Camera.js         # Viewport camera (follow player, screen-to-tile)
-    │   ├── Renderer.js       # Isometric pixel renderer, fog of war, entity drawing
-    │   ├── TileSprites.js    # Pre-rendered tile sprite cache for isometric tiles
+    │   ├── Renderer.js       # Isometric pixel renderer, fog of war, depth sorting
+    │   ├── TileSprites.js    # Pre-rendered tile sprite cache (procedural + external tileset)
+    │   ├── SpriteSheet.js    # Generic spritesheet loader with animation frame management
+    │   ├── EntitySprites.js  # Entity/player sprite manager with animation states
     │   └── Input.js          # Keyboard + mouse input manager
     ├── systems/
     │   ├── MapSystem.js      # Map loading, tile lookup, entity management
@@ -178,7 +181,8 @@ src/
         ├── entities.js       # NPC, enemy, container definitions
         ├── items.js          # Weapon, armor, consumable definitions
         ├── quests.js         # Quest stages, objectives, rewards
-        └── dialogs.js        # Branching dialog trees
+        ├── dialogs.js        # Branching dialog trees
+        └── sprites.js        # Sprite definitions (animation sequences, frame keys)
 ```
 
 ### Module Map
@@ -187,6 +191,10 @@ src/
         │
         ▼
 [Game] ──creates──► [Camera, Renderer, Input]
+  │                            │
+  │                     Renderer──creates──► [TileSprites, EntitySprites]
+  │                                              │              │
+  │                                    [SpriteSheet]    [data/sprites.js]
   │
   ├──creates──► [MapSystem] ──reads──► [data/maps.js, data/entities.js]
   ├──creates──► [CharacterSystem] ──reads──► [core/constants.js]

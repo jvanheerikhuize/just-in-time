@@ -175,7 +175,7 @@ Just In Time solves this by:
 | Metric | Target | Measurement |
 |--------|--------|-------------|
 | Frame Rate | 60 fps | requestAnimationFrame loop |
-| Map Load Time | < 100ms | Base64 decode + grid creation |
+| Map Load Time | < 100ms | Tilemap + spritesheet initialization |
 | Pathfinding | < 16ms | A* with 200-step limit |
 | Initial Load | < 2s | All JS modules loaded via ES imports |
 
