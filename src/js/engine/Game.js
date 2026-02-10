@@ -17,6 +17,7 @@ import { DialogSystem } from '../systems/DialogSystem.js';
 import { QuestSystem } from '../systems/QuestSystem.js';
 import { InventorySystem } from '../systems/InventorySystem.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
+import { SoundSystem } from '../systems/SoundSystem.js';
 
 export class Game {
   constructor() {
@@ -34,6 +35,7 @@ export class Game {
     this.questSystem = new QuestSystem(this);
     this.inventorySystem = new InventorySystem(this);
     this.saveSystem = new SaveSystem(this);
+    this.soundSystem = new SoundSystem(this);
 
     // Player state
     this.player = null;

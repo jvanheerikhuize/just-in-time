@@ -338,6 +338,19 @@ body {
   text-align: right;
 }
 
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 16px 0;
+}
+
+.settings-section-label {
+  color: var(--color-amber);
+  font-size: 16px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
 /* ---- Game Screen ---- */
 
 #game-screen {

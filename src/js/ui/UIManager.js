@@ -101,6 +101,26 @@ export class UIManager {
       this.game.moveDelay = val;
     });
 
+    // Audio volume sliders
+    const volSliders = [
+      { id: 'setting-master-vol', channel: 'master' },
+      { id: 'setting-sfx-vol', channel: 'sfx' },
+      { id: 'setting-ambient-vol', channel: 'ambient' },
+      { id: 'setting-music-vol', channel: 'music' },
+    ];
+    for (const { id, channel } of volSliders) {
+      document.getElementById(id)?.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        document.getElementById(id + '-val').textContent = val + '%';
+        this.game.soundSystem.setVolume(channel, val / 100);
+      });
+    }
+
+    document.getElementById('setting-mute-btn')?.addEventListener('click', () => {
+      const muted = this.game.soundSystem.toggleMute();
+      document.getElementById('setting-mute-btn').textContent = muted ? 'ON' : 'OFF';
+    });
+
     // Character creation
     document.getElementById('btn-back-menu')?.addEventListener('click', () => {
       this.showScreen('main-menu');
@@ -818,12 +838,36 @@ export class UIManager {
       speedEl.value = this.game.moveDelay;
       document.getElementById('setting-speed-val').textContent = this.game.moveDelay + 'ms';
     }
+
+    // Audio settings (SoundSystem loads its own volumes from localStorage,
+    // we just sync the slider DOM elements here)
+    const soundSettings = this.game.soundSystem.getSettings();
+    const volMap = {
+      'setting-master-vol': soundSettings.soundVolumes.master,
+      'setting-sfx-vol': soundSettings.soundVolumes.sfx,
+      'setting-ambient-vol': soundSettings.soundVolumes.ambient,
+      'setting-music-vol': soundSettings.soundVolumes.music,
+    };
+    for (const [id, vol] of Object.entries(volMap)) {
+      const el = document.getElementById(id);
+      if (el) {
+        const pct = Math.round(vol * 100);
+        el.value = pct;
+        document.getElementById(id + '-val').textContent = pct + '%';
+      }
+    }
+    const muteBtn = document.getElementById('setting-mute-btn');
+    if (muteBtn) {
+      muteBtn.textContent = soundSettings.soundMuted ? 'ON' : 'OFF';
+    }
   }
 
   _saveSettings() {
+    const soundSettings = this.game.soundSystem.getSettings();
     localStorage.setItem('jit_settings', JSON.stringify({
       fovRadius: this.game.fovRadius,
       moveDelay: this.game.moveDelay,
+      ...soundSettings,
     }));
   }
 }
