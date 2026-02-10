@@ -43,7 +43,7 @@ src/js/
 ├── core/                  # Shared foundation (no game logic)
 │   ├── constants.js       # All enums, tile defs, attribute config
 │   ├── EventBus.js        # Singleton pub/sub
-│   └── utils.js           # A* pathfinding, FOV, base64, seeded RNG
+│   └── utils.js           # A* pathfinding, FOV, map parsing, seeded RNG
 ├── engine/                # Game loop and rendering
 │   ├── Game.js            # Main game class, state machine, update/render
 │   ├── Camera.js          # Viewport management
@@ -130,8 +130,8 @@ export const ITEM_DEFS = {
 ```
 Content files have no logic, only data.
 
-### 4.4 Map Encoding
-Maps are authored as ASCII text, encoded to base64:
+### 4.4 Map Parsing
+Maps are authored as ASCII text, parsed to 2D tile grids:
 ```javascript
 const mapText = `
 ##########
@@ -140,9 +140,13 @@ const mapText = `
 ##########
 `;
 
+const parsed = parseMap(mapText);
+
 export const MAP_DEFS = {
   map_id: {
-    ...encodeMap(mapText),
+    width: parsed.width,
+    height: parsed.height,
+    layers: { ground: parsed.grid },
     name: 'Map Name',
     spawns: { default: { x: 2, y: 2 } },
     exits: [...],

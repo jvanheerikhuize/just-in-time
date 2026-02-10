@@ -71,7 +71,7 @@ Just In Time solves this by:
 #### Feature: Tile-Based Map Exploration
 - **ID**: F-002
 - **Priority**: Must Have
-- **Description**: Navigate tile-based maps via click-to-move (A* pathfinding) or WASD keyboard movement. Maps are defined as ASCII text, encoded to base64, and rendered on HTML5 Canvas with field-of-view and fog of war.
+- **Description**: Navigate tile-based maps via click-to-move (A* pathfinding) or WASD keyboard movement. Maps are defined as ASCII text, parsed to 2D tile grids, and rendered on HTML5 Canvas with field-of-view and fog of war.
 - **User Story**: As a player, I want to explore the wasteland so that I can discover locations, NPCs, and loot.
 - **Acceptance Criteria**:
   - [x] Given a map, when the player moves, then FOV updates and unexplored areas remain hidden
@@ -262,7 +262,7 @@ The v1.0.0 product is considered complete when:
 | FOV | Field of View - visible tiles computed via raycasting |
 | Tile | A single cell in the map grid, rendered as a colored character |
 | EventBus | Central publish/subscribe system for decoupled communication between game systems |
-| Base64 map | Maps authored as ASCII text art, converted to base64-encoded byte arrays of tile IDs |
+| Tile map | Maps authored as ASCII text art, parsed to 2D arrays of tile IDs via `parseMap()` |
 | Dialog tree | Branching conversation structure with nodes (NPC text) and responses (player choices) |
 | Skill check | A dialog option gated by a minimum attribute or skill value |
 | Story flag | A boolean key-value pair tracking world state changes (e.g., quest progress, NPC reactions) |

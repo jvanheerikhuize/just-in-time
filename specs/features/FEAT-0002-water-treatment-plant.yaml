@@ -155,7 +155,7 @@ acceptance_criteria:
 
 technical_requirements:
   constraints:
-    - "Map must use the existing text-based map encoding system (encodeMap)"
+    - "Map must use the existing text-based map parsing system (parseMap)"
     - "All new entity types must follow the existing ENTITY_DEFS pattern"
     - "Boss encounter must work within the existing CombatSystem"
     - "Map size should be reasonable for browser performance (under 60x40 tiles)"

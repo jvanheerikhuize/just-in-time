@@ -1,11 +1,10 @@
 /**
  * JUST IN TIME - Map System
  * Loads, manages, and provides access to map data.
- * Maps are stored as base64-encoded tile grids.
+ * Maps are stored as 2D tile ID grids parsed from ASCII text.
  */
 
 import { TILE_PROPS, Tiles } from '../core/constants.js';
-import { decodeMap } from '../core/utils.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { ALL_MAPS } from '../data/maps.js';
 import { ENTITY_DEFS } from '../data/entities.js';
@@ -19,7 +18,7 @@ export class MapSystem {
   }
 
   /**
-   * Load a map by ID and decode its layers.
+   * Load a map by ID.
    */
   loadMap(mapId) {
     // Check cache first
@@ -31,11 +30,8 @@ export class MapSystem {
     const mapDef = ALL_MAPS[mapId];
     if (!mapDef) return null;
 
-    // Decode base64 layers
-    const groundGrid = decodeMap(mapDef.layers.ground, mapDef.width, mapDef.height);
-    const objectGrid = mapDef.layers.objects
-      ? decodeMap(mapDef.layers.objects, mapDef.width, mapDef.height)
-      : null;
+    const groundGrid = mapDef.layers.ground;
+    const objectGrid = mapDef.layers.objects || null;
 
     const mapData = {
       id: mapId,

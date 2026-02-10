@@ -1,6 +1,6 @@
 /**
  * JUST IN TIME - Map Data
- * All maps defined as text, encoded to base64 tile grids.
+ * All maps defined as ASCII text, parsed to 2D tile ID grids.
  * Character mapping is defined in constants.js CHAR_TO_TILE.
  *
  * Legend:
@@ -16,7 +16,7 @@
  *   'K' = locker      'f' = fence        'g' = fence gate    'S' = sign
  */
 
-import { encodeMap } from '../core/utils.js';
+import { parseMap } from '../core/utils.js';
 
 // ============================================================
 // VAULT 42 - Starting Location
@@ -80,8 +80,8 @@ const VAULT_42_OBJECTS = `
 
 `;
 
-const vault42Ground = encodeMap(VAULT_42_GROUND);
-const vault42Objects = encodeMap(VAULT_42_OBJECTS);
+const vault42Ground = parseMap(VAULT_42_GROUND);
+const vault42Objects = parseMap(VAULT_42_OBJECTS);
 
 // ============================================================
 // DUSTBOWL - First Settlement
@@ -118,7 +118,7 @@ const DUSTBOWL_GROUND = `
 ::::::::::::::::::::::::::::^:::::::::::::::::
 `;
 
-const dustbowlGround = encodeMap(DUSTBOWL_GROUND);
+const dustbowlGround = parseMap(DUSTBOWL_GROUND);
 
 // ============================================================
 // THE WASTES - Wilderness between locations
@@ -152,7 +152,7 @@ const WASTES_GROUND = `
 ::::::::::::::::::::::::::::::::::::::::::
 `;
 
-const wastesGround = encodeMap(WASTES_GROUND);
+const wastesGround = parseMap(WASTES_GROUND);
 
 // ============================================================
 // MAP REGISTRY
@@ -165,8 +165,8 @@ export const ALL_MAPS = {
     width: vault42Ground.width,
     height: vault42Ground.height,
     layers: {
-      ground: vault42Ground.data,
-      objects: vault42Objects.data,
+      ground: vault42Ground.grid,
+      objects: vault42Objects.grid,
     },
     spawns: {
       start: { x: 4, y: 3 },   // Starting cryo pod
@@ -191,7 +191,7 @@ export const ALL_MAPS = {
     width: dustbowlGround.width,
     height: dustbowlGround.height,
     layers: {
-      ground: dustbowlGround.data,
+      ground: dustbowlGround.grid,
     },
     spawns: {
       start: { x: 28, y: 26 },    // South entrance (one tile north of exit)
@@ -226,7 +226,7 @@ export const ALL_MAPS = {
     width: wastesGround.width,
     height: wastesGround.height,
     layers: {
-      ground: wastesGround.data,
+      ground: wastesGround.grid,
     },
     spawns: {
       start: { x: 13, y: 23 },

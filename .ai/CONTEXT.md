@@ -157,7 +157,7 @@ src/
     ├── core/
     │   ├── constants.js      # All enums, tile defs, W.A.S.T.E.D. attributes
     │   ├── EventBus.js       # Singleton pub/sub event system
-    │   └── utils.js          # Base64 codec, A* pathfinding, FOV, seeded RNG
+    │   └── utils.js          # Map parsing, A* pathfinding, FOV, seeded RNG
     ├── engine/
     │   ├── Game.js           # Main game class: state, loop, input handling
     │   ├── Camera.js         # Viewport camera (follow player, screen-to-tile)
@@ -177,7 +177,7 @@ src/
     ├── ui/
     │   └── UIManager.js      # DOM-based UI panels, HUD, menus
     └── data/
-        ├── maps.js           # Map definitions (text -> base64 encoded)
+        ├── maps.js           # Map definitions (ASCII text -> 2D tile grids)
         ├── entities.js       # NPC, enemy, container definitions
         ├── items.js          # Weapon, armor, consumable definitions
         ├── quests.js         # Quest stages, objectives, rewards
@@ -241,7 +241,7 @@ src/
 | Type | Target | Focus |
 |------|--------|-------|
 | Manual | Primary | Play-through testing of quests and combat |
-| Unit | Future | Core utilities (pathfinding, FOV, base64 codec) |
+| Unit | Future | Core utilities (pathfinding, FOV, map parsing) |
 | E2E | Future | Automated browser testing of game flows |
 
 ### Test Approach

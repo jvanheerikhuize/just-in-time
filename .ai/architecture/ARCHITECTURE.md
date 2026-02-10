@@ -128,7 +128,7 @@ No external systems. No server. No API. Fully client-side.
 ├─────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
 │  │  maps.js    │ │ entities.js │ │  items.js   │           │
-│  │  (base64)   │ │ (NPCs/foes) │ │  (gear)     │           │
+│  │  (grids)    │ │ (NPCs/foes) │ │  (gear)     │           │
 │  └─────────────┘ └─────────────┘ └─────────────┘           │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
 │  │  quests.js  │ │ dialogs.js  │ │constants.js │           │
@@ -150,7 +150,7 @@ No external systems. No server. No API. Fully client-side.
 | SpriteSheet | Generic spritesheet loader with animation frame management | Canvas API | `engine/SpriteSheet.js` |
 | EntitySprites | Entity/player sprite animation with procedural fallback | Canvas API | `engine/EntitySprites.js` |
 | Input | Keyboard and mouse input with click queue | DOM events | `engine/Input.js` |
-| MapSystem | Map loading, base64 decode, tile lookups, entity placement | Vanilla JS class | `systems/MapSystem.js` |
+| MapSystem | Map loading, tile lookups, entity placement | Vanilla JS class | `systems/MapSystem.js` |
 | CharacterSystem | W.A.S.T.E.D. attributes, skill calculation, level-up | Vanilla JS class | `systems/CharacterSystem.js` |
 | CombatSystem | Turn-based combat, initiative, attack/defend, AP management | Vanilla JS class | `systems/CombatSystem.js` |
 | DialogSystem | Branching dialog trees, skill checks, conditional responses | Vanilla JS class | `systems/DialogSystem.js` |
@@ -173,8 +173,8 @@ No external systems. No server. No API. Fully client-side.
 │ name           │       │ id             │
 │ attributes     │──on──▶│ name           │
 │ skills         │       │ width, height  │
-│ hp/maxHp       │       │ groundGrid[]   │ ◄── base64 decoded
-│ ap/maxAp       │       │ objectGrid[]   │ ◄── base64 decoded
+│ hp/maxHp       │       │ groundGrid[]   │ ◄── parsed from ASCII text
+│ ap/maxAp       │       │ objectGrid[]   │ ◄── parsed from ASCII text
 │ xp, level      │       │ spawns{}       │
 │ caps           │       │ exits[]        │──links to──▶ [Other Maps]
 │ position {x,y} │       │ entities[]     │──refs──▶ [Entity Defs]
@@ -221,7 +221,7 @@ No external systems. No server. No API. Fully client-side.
 | Data Type | Storage | Rationale |
 |-----------|---------|-----------|
 | Game content (maps, entities, items, quests, dialogs) | JS data files (imported as ES modules) | Easy to author and extend; no parse step |
-| Map tile grids | Base64-encoded Uint8Arrays | Compact storage of 2D tile ID arrays |
+| Map tile grids | 2D arrays of tile IDs (parsed from ASCII at module load) | Direct grid access for rendering and logic |
 | Runtime game state | In-memory JS objects | Fast access during gameplay |
 | Persistent saves | Browser LocalStorage (JSON) | Simple client-side persistence |
 | Configuration constants | `core/constants.js` | Single source of truth for all enums and settings |
@@ -230,14 +230,14 @@ No external systems. No server. No API. Fully client-side.
 
 ```
 [Content Authoring]
-  Maps: ASCII text art → encodeMap() → base64 string + dimensions
+  Maps: ASCII text art → parseMap() → 2D tile ID grid + dimensions
   Entities/Items/Quests/Dialogs: JS object literals in data files
 
 [Runtime Loading]
   main.js imports → Game creates Systems → Systems import data files
        │
        ▼
-  MapSystem.loadMap() → decodeMap(base64) → 2D tile grid arrays
+  MapSystem.loadMap() → reads pre-parsed 2D tile grid arrays
        │
        ▼
   [Game Loop] ←── requestAnimationFrame
@@ -407,7 +407,7 @@ src/
     ├── core/          # Shared foundation
     │   ├── constants.js   # All enums, tile defs, attribute config
     │   ├── EventBus.js    # Singleton pub/sub
-    │   └── utils.js       # A* pathfinding, FOV, base64, seeded RNG
+    │   └── utils.js       # A* pathfinding, FOV, map parsing, seeded RNG
     ├── engine/        # Game loop and rendering
     │   ├── Game.js        # Main game class
     │   ├── Camera.js      # Viewport camera
@@ -427,7 +427,7 @@ src/
     ├── ui/            # DOM-based UI
     │   └── UIManager.js
     └── data/          # Content definitions (data-driven)
-        ├── maps.js        # Map layouts (ASCII text → base64)
+        ├── maps.js        # Map layouts (ASCII text → 2D tile grids)
         ├── entities.js    # NPCs, enemies, containers
         ├── items.js       # Weapons, armor, consumables
         ├── quests.js      # Quest stages and objectives
@@ -441,7 +441,7 @@ src/
 |---------|-------|---------|
 | Event-driven | System communication | `eventBus.emit(Events.PLAYER_MOVE, x, y)` |
 | Data-driven content | All game content as JS data | `QUEST_DEFS`, `ENTITY_DEFS`, `ITEM_DEFS` |
-| Base64 tile encoding | Compact map storage | `encodeMap(asciiText)` / `decodeMap(base64, w, h)` |
+| ASCII map parsing | Text-to-grid map authoring | `parseMap(asciiText)` → `{ grid, width, height }` |
 | State machine | Game mode management | `GameState.PLAYING`, `GameState.COMBAT`, etc. |
 | System composition | Game owns all systems | `this.mapSystem = new MapSystem(this)` |
 | A* pathfinding | Click-to-move navigation | `findPath(grid, start, end, maxSteps)` |
@@ -456,7 +456,7 @@ src/
 |---------|----------------|
 | Inter-system communication | EventBus singleton (pub/sub) |
 | Constants & configuration | `core/constants.js` (tiles, attributes, combat, colors) |
-| Map encoding | `core/utils.js` (encodeMap/decodeMap with base64) |
+| Map parsing | `core/utils.js` (parseMap: ASCII text → 2D tile grid) |
 | Pathfinding | `core/utils.js` (A* with min-heap, diagonal support) |
 | Field of view | `core/utils.js` (raycasting with configurable radius) |
 | Random numbers | `core/utils.js` (SeededRandom class) |
@@ -481,7 +481,7 @@ src/
 See `../decisions/` for detailed ADRs:
 - ADR-001: Use vanilla JS with no framework or build step
 - ADR-002: Event-driven architecture with centralized EventBus
-- ADR-003: Base64-encoded tile maps from ASCII text art
+- ADR-003: ASCII text art maps parsed to 2D tile grids
 - ADR-004: Data-driven content (all game content in JS data files)
 
 ### C. Revision History

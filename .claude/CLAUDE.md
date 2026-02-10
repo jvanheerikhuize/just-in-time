@@ -61,7 +61,7 @@ Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas (isometric pixel-
 
 ## Adding Content
 
-- **Maps**: Add to `data/maps.js` as ASCII text + `encodeMap()`
+- **Maps**: Add to `data/maps.js` as ASCII text + `parseMap()`
 - **NPCs**: Add to `data/entities.js` with `dialogId` pointing to `data/dialogs.js`
 - **Quests**: Add to `data/quests.js` with stages and objectives
 - **Items**: Add to `data/items.js`

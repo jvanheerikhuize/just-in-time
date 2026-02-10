@@ -1,71 +1,36 @@
 /**
  * JUST IN TIME - Utility Functions
- * Base64 encoding/decoding for maps, A* pathfinding, seeded random, etc.
+ * Map parsing, A* pathfinding, seeded random, etc.
  */
 
 import { CHAR_TO_TILE, TILE_PROPS, DIRECTIONS } from './constants.js';
 
 // ============================================================
-// BASE64 TILE MAP ENCODING/DECODING
+// MAP PARSING
 // ============================================================
 
 /**
- * Encode a text-based map string into base64.
- * Each character is converted to a tile ID (uint8), then the byte array is base64 encoded.
+ * Parse a text-based map string into a 2D tile ID grid.
+ * Each character is converted to a tile ID via CHAR_TO_TILE.
+ * @param {string} textMap - ASCII art map string
+ * @returns {{ grid: number[][], width: number, height: number }}
  */
-export function encodeMap(textMap) {
+export function parseMap(textMap) {
   const lines = textMap.split('\n').filter(l => l.length > 0);
   const height = lines.length;
   const width = Math.max(...lines.map(l => l.length));
-  const bytes = new Uint8Array(width * height);
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const ch = y < lines.length && x < lines[y].length ? lines[y][x] : ' ';
-      bytes[y * width + x] = CHAR_TO_TILE[ch] !== undefined ? CHAR_TO_TILE[ch] : 0;
-    }
-  }
-
-  return { data: uint8ToBase64(bytes), width, height };
-}
-
-/**
- * Decode a base64 encoded map back to a 2D tile ID array.
- */
-export function decodeMap(base64, width, height) {
-  const bytes = base64ToUint8(base64);
   const grid = [];
+
   for (let y = 0; y < height; y++) {
     const row = [];
     for (let x = 0; x < width; x++) {
-      row.push(bytes[y * width + x] || 0);
+      const ch = y < lines.length && x < lines[y].length ? lines[y][x] : ' ';
+      row.push(CHAR_TO_TILE[ch] !== undefined ? CHAR_TO_TILE[ch] : 0);
     }
     grid.push(row);
   }
-  return grid;
-}
 
-/**
- * Convert Uint8Array to base64 string.
- */
-export function uint8ToBase64(bytes) {
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-/**
- * Convert base64 string to Uint8Array.
- */
-export function base64ToUint8(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
+  return { grid, width, height };
 }
 
 // ============================================================

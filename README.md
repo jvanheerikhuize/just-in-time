@@ -67,7 +67,7 @@ src/
 
 New content is added via data files -- no code changes needed:
 
-- **Maps**: `src/js/data/maps.js` (ASCII text art + `encodeMap()`)
+- **Maps**: `src/js/data/maps.js` (ASCII text art + `parseMap()`)
 - **NPCs/Enemies**: `src/js/data/entities.js`
 - **Items**: `src/js/data/items.js`
 - **Quests**: `src/js/data/quests.js`

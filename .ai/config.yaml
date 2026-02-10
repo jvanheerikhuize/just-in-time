@@ -89,7 +89,7 @@ domain:
     - "All game content is data-driven (JS object literals)"
     - "Systems communicate via EventBus, not direct calls"
     - "Only UIManager touches the DOM"
-    - "Maps are ASCII text encoded to base64"
+    - "Maps are ASCII text parsed to 2D tile grids via parseMap()"
     - "Content should match Fallout tone with Infocom humor"
 
 specs:

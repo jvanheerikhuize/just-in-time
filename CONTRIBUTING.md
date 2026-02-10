@@ -15,7 +15,7 @@ Most contributions are content additions. No code changes required:
 ### Maps
 Add to `src/js/data/maps.js`:
 1. Write the map as ASCII text art (see existing maps for character reference)
-2. Call `encodeMap()` on the text
+2. Call `parseMap()` on the text
 3. Define spawns, exits, and entity placements
 
 ### NPCs & Enemies
