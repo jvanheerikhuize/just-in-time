@@ -122,74 +122,164 @@ export class Renderer {
   }
 
   /**
-   * Draw an entity (NPC, enemy, container) as a simple figure.
+   * Draw an entity (NPC, enemy, container) as a detailed figure.
    */
   _drawEntity(cx, cy, entity) {
     const color = entity.sprite?.fg || Colors.WHITE;
 
-    // Ground shadow
+    // Ground shadow ellipse
     this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    this._fillDiamond(cx, cy + 2, 10, 5);
+    this.ctx.beginPath();
+    this.ctx.ellipse(cx, cy + 2, 10, 5, 0, 0, Math.PI * 2);
+    this.ctx.fill();
 
-    if (entity.type === 'container' || entity.type === 'item_pickup') {
-      // Draw as a circle indicator
+    if (entity.type === 'container') {
+      // Small crate/chest shape
+      this.ctx.fillStyle = this._shade(color, 0.8);
+      this.ctx.fillRect(cx - 7, cy - 8, 14, 10);
+      // Lid
       this.ctx.fillStyle = color;
+      this.ctx.fillRect(cx - 8, cy - 10, 16, 3);
+      // Clasp
+      this.ctx.fillStyle = '#dd8';
+      this.ctx.fillRect(cx - 1, cy - 6, 2, 2);
+    } else if (entity.type === 'item_pickup') {
+      // Glowing item orb
+      this.ctx.fillStyle = color;
+      this.ctx.globalAlpha = 0.6;
       this.ctx.beginPath();
-      this.ctx.arc(cx, cy - 6, 6, 0, Math.PI * 2);
+      this.ctx.arc(cx, cy - 6, 5, 0, Math.PI * 2);
       this.ctx.fill();
-      this.ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-      this.ctx.lineWidth = 1;
-      this.ctx.stroke();
+      this.ctx.globalAlpha = 1;
+      // Specular highlight
+      this.ctx.fillStyle = '#fff';
+      this.ctx.globalAlpha = 0.5;
+      this.ctx.beginPath();
+      this.ctx.arc(cx - 1, cy - 7, 2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.globalAlpha = 1;
     } else {
-      // Draw humanoid figure
-      this.ctx.fillStyle = color;
-      // Head
+      // Humanoid figure with detail
+      const dark = this._shade(color, 0.6);
+      const mid = this._shade(color, 0.8);
+
+      // Head (skin tone base + colored hair/hat)
+      this.ctx.fillStyle = '#dca';
       this.ctx.beginPath();
       this.ctx.arc(cx, cy - 22, 4, 0, Math.PI * 2);
       this.ctx.fill();
+      this.ctx.fillStyle = dark;
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy - 23, 4, Math.PI, 0);
+      this.ctx.fill();
+
       // Torso
+      this.ctx.fillStyle = color;
       this.ctx.beginPath();
       this.ctx.moveTo(cx - 5, cy - 17);
       this.ctx.lineTo(cx + 5, cy - 17);
-      this.ctx.lineTo(cx + 3, cy - 4);
-      this.ctx.lineTo(cx - 3, cy - 4);
+      this.ctx.lineTo(cx + 4, cy - 6);
+      this.ctx.lineTo(cx - 4, cy - 6);
       this.ctx.closePath();
       this.ctx.fill();
+      // Right-side shading
+      this.ctx.fillStyle = dark;
+      this.ctx.globalAlpha = 0.3;
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx + 1, cy - 17);
+      this.ctx.lineTo(cx + 5, cy - 17);
+      this.ctx.lineTo(cx + 4, cy - 6);
+      this.ctx.lineTo(cx + 1, cy - 6);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.globalAlpha = 1;
+
+      // Arms
+      this.ctx.fillStyle = mid;
+      this.ctx.fillRect(cx - 7, cy - 16, 2, 8);
+      this.ctx.fillRect(cx + 5, cy - 16, 2, 8);
+
+      // Belt
+      this.ctx.fillStyle = this._shade(color, 0.5);
+      this.ctx.fillRect(cx - 4, cy - 7, 8, 1);
+
       // Legs
-      this.ctx.fillRect(cx - 3, cy - 4, 2, 5);
-      this.ctx.fillRect(cx + 1, cy - 4, 2, 5);
+      this.ctx.fillStyle = dark;
+      this.ctx.fillRect(cx - 3, cy - 6, 2, 6);
+      this.ctx.fillRect(cx + 1, cy - 6, 2, 6);
     }
   }
 
   /**
-   * Draw the player character with a green glow.
+   * Draw the player character with a green glow and detailed figure.
    */
   _drawPlayer(cx, cy) {
     // Glow on ground
     this.ctx.fillStyle = 'rgba(51, 255, 51, 0.08)';
     this._fillDiamond(cx, cy, HW, HH);
 
-    // Ground shadow
+    // Ground shadow ellipse
     this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    this._fillDiamond(cx, cy + 2, 12, 6);
+    this.ctx.beginPath();
+    this.ctx.ellipse(cx, cy + 2, 12, 6, 0, 0, Math.PI * 2);
+    this.ctx.fill();
 
-    // Player figure (green, slightly larger)
-    this.ctx.fillStyle = Colors.PLAYER;
-    // Head
+    const green = Colors.PLAYER;
+    const darkGreen = '#1a8a1a';
+    const midGreen = '#28cc28';
+
+    // Head (skin tone + green helmet/hat)
+    this.ctx.fillStyle = '#dca';
     this.ctx.beginPath();
     this.ctx.arc(cx, cy - 24, 5, 0, Math.PI * 2);
     this.ctx.fill();
+    this.ctx.fillStyle = darkGreen;
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy - 25, 5, Math.PI, 0);
+    this.ctx.fill();
+
     // Torso
+    this.ctx.fillStyle = green;
     this.ctx.beginPath();
     this.ctx.moveTo(cx - 6, cy - 18);
     this.ctx.lineTo(cx + 6, cy - 18);
-    this.ctx.lineTo(cx + 4, cy - 4);
-    this.ctx.lineTo(cx - 4, cy - 4);
+    this.ctx.lineTo(cx + 5, cy - 5);
+    this.ctx.lineTo(cx - 5, cy - 5);
     this.ctx.closePath();
     this.ctx.fill();
+    // Right-side shading
+    this.ctx.fillStyle = darkGreen;
+    this.ctx.globalAlpha = 0.35;
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx + 1, cy - 18);
+    this.ctx.lineTo(cx + 6, cy - 18);
+    this.ctx.lineTo(cx + 5, cy - 5);
+    this.ctx.lineTo(cx + 1, cy - 5);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.globalAlpha = 1;
+
+    // Arms
+    this.ctx.fillStyle = midGreen;
+    this.ctx.fillRect(cx - 8, cy - 17, 2, 9);
+    this.ctx.fillRect(cx + 6, cy - 17, 2, 9);
+
+    // Belt
+    this.ctx.fillStyle = '#654';
+    this.ctx.fillRect(cx - 5, cy - 6, 10, 2);
+    // Belt buckle
+    this.ctx.fillStyle = '#dd8';
+    this.ctx.fillRect(cx - 1, cy - 6, 2, 2);
+
     // Legs
-    this.ctx.fillRect(cx - 4, cy - 4, 3, 5);
-    this.ctx.fillRect(cx + 1, cy - 4, 3, 5);
+    this.ctx.fillStyle = darkGreen;
+    this.ctx.fillRect(cx - 4, cy - 4, 3, 6);
+    this.ctx.fillRect(cx + 1, cy - 4, 3, 6);
+
+    // Boots
+    this.ctx.fillStyle = '#543';
+    this.ctx.fillRect(cx - 4, cy + 1, 3, 2);
+    this.ctx.fillRect(cx + 1, cy + 1, 3, 2);
 
     // Tile highlight ring
     this.ctx.strokeStyle = 'rgba(51, 255, 51, 0.25)';
@@ -238,6 +328,15 @@ export class Renderer {
         this._fillDiamond(s.x, s.y, HW, HH);
       }
     }
+  }
+
+  // ---- Color helpers ----
+
+  _shade(hex, factor) {
+    const parse = hex.length === 4
+      ? [parseInt(hex[1], 16) * 17, parseInt(hex[2], 16) * 17, parseInt(hex[3], 16) * 17]
+      : [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    return `rgb(${Math.floor(parse[0] * factor)},${Math.floor(parse[1] * factor)},${Math.floor(parse[2] * factor)})`;
   }
 
   // ---- Diamond drawing helpers (centered on cx, cy) ----

@@ -58,6 +58,8 @@ export class UIManager {
     eventBus.on(Events.COMBAT_TURN, () => this.updateCombat());
     eventBus.on(Events.MAP_LOADED, (mapId) => this.updateLocation(mapId));
     eventBus.on(Events.GAME_START, () => this.showGameScreen());
+    eventBus.on(Events.PLAYER_MOVE, () => { if (this.activePanel === 'map') this._renderMap(); });
+    eventBus.on(Events.MAP_LOADED, () => { if (this.activePanel === 'map') this._renderMap(); });
   }
 
   _bindButtons() {
