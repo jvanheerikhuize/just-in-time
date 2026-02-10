@@ -60,6 +60,23 @@ export class Input {
       this._updateMouse(e);
       this.mouseRightClicked = true;
     });
+
+    // Touch support for mobile devices
+    this.canvas.addEventListener('touchstart', (e) => {
+      if (!this.enabled) return;
+      e.preventDefault();
+      this._updateTouch(e.touches[0]);
+      this.mouseClicked = true;
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      this._updateTouch(e.touches[0]);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+    }, { passive: false });
   }
 
   /**
@@ -71,6 +88,14 @@ export class Input {
     const scaleY = this.canvas.height / rect.height;
     this.mouseX = (e.clientX - rect.left) * scaleX;
     this.mouseY = (e.clientY - rect.top) * scaleY;
+  }
+
+  _updateTouch(touch) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    this.mouseX = (touch.clientX - rect.left) * scaleX;
+    this.mouseY = (touch.clientY - rect.top) * scaleY;
   }
 
   isKeyDown(key) {

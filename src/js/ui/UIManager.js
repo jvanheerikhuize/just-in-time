@@ -705,8 +705,9 @@ export class UIManager {
 
     const rect = element.getBoundingClientRect();
     const containerRect = document.getElementById('game-container').getBoundingClientRect();
-    tooltip.style.left = (rect.left - containerRect.left - 260) + 'px';
-    tooltip.style.top = (rect.top - containerRect.top) + 'px';
+    const scale = containerRect.width / 1280 || 1;
+    tooltip.style.left = ((rect.left - containerRect.left) / scale - 260) + 'px';
+    tooltip.style.top = ((rect.top - containerRect.top) / scale) + 'px';
   }
 
   _hideTooltip() {

@@ -97,6 +97,20 @@ eventBus.on(Events.PLAYER_LEVEL_UP, () => {
   ui.updateHUD();
 });
 
+// ---- Responsive Viewport ----
+
+function fitToViewport() {
+  const container = document.getElementById('game-container');
+  const scaleX = window.innerWidth / 1280;
+  const scaleY = window.innerHeight / 960;
+  const scale = Math.min(scaleX, scaleY, 1);
+  container.style.transform = `scale(${scale})`;
+  container.style.transformOrigin = 'center center';
+}
+
+fitToViewport();
+window.addEventListener('resize', fitToViewport);
+
 // ---- Start Game Loop ----
 
 game.run();
