@@ -45,27 +45,32 @@ export class Input {
     });
 
     this.canvas.addEventListener('mousemove', (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      this.mouseX = e.clientX - rect.left;
-      this.mouseY = e.clientY - rect.top;
+      this._updateMouse(e);
     });
 
     this.canvas.addEventListener('click', (e) => {
       if (!this.enabled) return;
-      const rect = this.canvas.getBoundingClientRect();
-      this.mouseX = e.clientX - rect.left;
-      this.mouseY = e.clientY - rect.top;
+      this._updateMouse(e);
       this.mouseClicked = true;
     });
 
     this.canvas.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (!this.enabled) return;
-      const rect = this.canvas.getBoundingClientRect();
-      this.mouseX = e.clientX - rect.left;
-      this.mouseY = e.clientY - rect.top;
+      this._updateMouse(e);
       this.mouseRightClicked = true;
     });
+  }
+
+  /**
+   * Update mouse coordinates, scaling for CSS vs canvas resolution.
+   */
+  _updateMouse(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / rect.width;
+    const scaleY = this.canvas.height / rect.height;
+    this.mouseX = (e.clientX - rect.left) * scaleX;
+    this.mouseY = (e.clientY - rect.top) * scaleY;
   }
 
   isKeyDown(key) {

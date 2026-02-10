@@ -3,7 +3,7 @@
  * Main game loop, state management, and system coordination.
  */
 
-import { GameState, TILE_SIZE } from '../core/constants.js';
+import { GameState } from '../core/constants.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { findPath, computeFOV } from '../core/utils.js';
 import { Camera } from './Camera.js';
@@ -520,14 +520,11 @@ export class Game {
     const mapData = this.mapSystem.getCurrentMap();
     if (!mapData) return;
 
-    // Draw map
-    this.renderer.drawMap(mapData, this.camera, this.fovSet, this.player.mapId);
-
-    // Draw entities
-    this.renderer.drawEntities(this.entities, this.camera, this.fovSet);
-
-    // Draw player
-    this.renderer.drawPlayer(this.player, this.camera);
+    // Draw scene (map + entities + player, depth-sorted)
+    this.renderer.drawScene(
+      mapData, this.camera, this.fovSet, this.player.mapId,
+      this.entities, this.player
+    );
 
     // Draw path preview
     if (this.currentPath.length > 0) {

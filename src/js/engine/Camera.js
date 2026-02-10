@@ -1,13 +1,16 @@
 /**
- * JUST IN TIME - Camera
- * Manages the viewport offset to follow the player and scroll the map.
+ * JUST IN TIME - Isometric Camera
+ * Manages the viewport in isometric world space, following the player.
  */
 
-import { TILE_SIZE, VIEWPORT_COLS, VIEWPORT_ROWS } from '../core/constants.js';
-import { clamp } from '../core/utils.js';
+import { ISO_TILE_W, ISO_TILE_H, CANVAS_WIDTH, CANVAS_HEIGHT } from '../core/constants.js';
+
+const HALF_W = ISO_TILE_W / 2;
+const HALF_H = ISO_TILE_H / 2;
 
 export class Camera {
   constructor() {
+    // Camera position in world pixel space (center of viewport)
     this.x = 0;
     this.y = 0;
     this.targetX = 0;
@@ -16,19 +19,11 @@ export class Camera {
   }
 
   /**
-   * Center the camera on a tile position, clamped to map bounds.
+   * Center the camera on a tile position.
    */
   follow(tileX, tileY, mapWidth, mapHeight, immediate = false) {
-    this.targetX = clamp(
-      tileX - Math.floor(VIEWPORT_COLS / 2),
-      0,
-      Math.max(0, mapWidth - VIEWPORT_COLS)
-    );
-    this.targetY = clamp(
-      tileY - Math.floor(VIEWPORT_ROWS / 2),
-      0,
-      Math.max(0, mapHeight - VIEWPORT_ROWS)
-    );
+    this.targetX = (tileX - tileY) * HALF_W;
+    this.targetY = (tileX + tileY) * HALF_H;
 
     if (immediate) {
       this.x = this.targetX;
@@ -40,37 +35,42 @@ export class Camera {
     this.x += (this.targetX - this.x) * this.smoothing;
     this.y += (this.targetY - this.y) * this.smoothing;
 
-    // Snap when very close to prevent sub-pixel jitter
-    if (Math.abs(this.x - this.targetX) < 0.01) this.x = this.targetX;
-    if (Math.abs(this.y - this.targetY) < 0.01) this.y = this.targetY;
+    if (Math.abs(this.x - this.targetX) < 0.5) this.x = this.targetX;
+    if (Math.abs(this.y - this.targetY) < 0.5) this.y = this.targetY;
   }
 
   /**
-   * Convert screen pixel coords to tile coords.
+   * Convert tile coordinates to screen pixel coordinates (center of tile diamond).
    */
-  screenToTile(screenX, screenY) {
+  tileToScreen(tx, ty) {
     return {
-      x: Math.floor(screenX / TILE_SIZE + this.x),
-      y: Math.floor(screenY / TILE_SIZE + this.y),
+      x: (tx - ty) * HALF_W - this.x + CANVAS_WIDTH / 2,
+      y: (tx + ty) * HALF_H - this.y + CANVAS_HEIGHT / 2,
     };
   }
 
   /**
-   * Convert tile coords to screen pixel coords.
+   * Convert screen pixel coordinates to tile coordinates (mouse picking).
    */
-  tileToScreen(tileX, tileY) {
+  screenToTile(sx, sy) {
+    const wx = sx + this.x - CANVAS_WIDTH / 2;
+    const wy = sy + this.y - CANVAS_HEIGHT / 2;
     return {
-      x: (tileX - this.x) * TILE_SIZE,
-      y: (tileY - this.y) * TILE_SIZE,
+      x: Math.round((wx / HALF_W + wy / HALF_H) / 2),
+      y: Math.round((wy / HALF_H - wx / HALF_W) / 2),
     };
   }
 
   /**
-   * Check if a tile is within the viewport.
+   * Check if a tile is potentially visible on screen.
    */
-  isVisible(tileX, tileY) {
-    const sx = tileX - this.x;
-    const sy = tileY - this.y;
-    return sx >= -1 && sx <= VIEWPORT_COLS && sy >= -1 && sy <= VIEWPORT_ROWS;
+  isVisible(tx, ty) {
+    const screen = this.tileToScreen(tx, ty);
+    return (
+      screen.x > -ISO_TILE_W &&
+      screen.x < CANVAS_WIDTH + ISO_TILE_W &&
+      screen.y > -ISO_TILE_H * 3 &&
+      screen.y < CANVAS_HEIGHT + ISO_TILE_H * 2
+    );
   }
 }

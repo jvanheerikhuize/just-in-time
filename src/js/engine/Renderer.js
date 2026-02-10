@@ -1,21 +1,23 @@
 /**
- * JUST IN TIME - Renderer
- * Draws the game world on a canvas using tile-based rendering.
- * Each tile is drawn as a colored rectangle with an ASCII character.
+ * JUST IN TIME - Isometric Renderer
+ * Draws the game world on a canvas using isometric tile-based rendering.
+ * Tiles and entities are depth-sorted using the painter's algorithm.
  */
 
-import { TILE_SIZE, VIEWPORT_COLS, VIEWPORT_ROWS, TILE_PROPS, Colors, Tiles } from '../core/constants.js';
+import { ISO_TILE_W, ISO_TILE_H, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_PROPS, Colors, Tiles } from '../core/constants.js';
+import { TileSprites } from './TileSprites.js';
+
+const HW = ISO_TILE_W / 2;
+const HH = ISO_TILE_H / 2;
 
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.canvas.width = VIEWPORT_COLS * TILE_SIZE;
-    this.canvas.height = VIEWPORT_ROWS * TILE_SIZE;
+    this.canvas.width = CANVAS_WIDTH;
+    this.canvas.height = CANVAS_HEIGHT;
 
-    // Font for tile characters
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
+    this.tileSprites = new TileSprites();
 
     // Explored tiles memory (fog of war)
     this.explored = new Map(); // mapId -> Set of "x,y"
@@ -25,139 +27,174 @@ export class Renderer {
    * Clear the canvas.
    */
   clear() {
-    this.ctx.fillStyle = '#000';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = '#0a0a0f';
+    this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
 
   /**
-   * Draw the map tiles visible in the viewport.
+   * Draw the full scene: map tiles, entities, and player, all depth-sorted.
    */
-  drawMap(mapData, camera, fovSet, mapId) {
+  drawScene(mapData, camera, fovSet, mapId, entities, player) {
     if (!mapData || !mapData.groundGrid) return;
 
-    // Ensure explored set exists for this map
-    if (!this.explored.has(mapId)) {
-      this.explored.set(mapId, new Set());
-    }
+    // Fog of war tracking
+    if (!this.explored.has(mapId)) this.explored.set(mapId, new Set());
     const exploredSet = this.explored.get(mapId);
-
-    // Add currently visible tiles to explored
     if (fovSet) {
-      for (const key of fovSet) {
-        exploredSet.add(key);
-      }
+      for (const key of fovSet) exploredSet.add(key);
     }
 
-    const startX = Math.floor(camera.x);
-    const startY = Math.floor(camera.y);
-    const offsetX = (camera.x - startX) * TILE_SIZE;
-    const offsetY = (camera.y - startY) * TILE_SIZE;
+    // Build entity lookup by depth (tx + ty)
+    const entityByDepth = new Map();
+    for (const ent of entities) {
+      if (!ent.position || ent.alive === false) continue;
+      const d = ent.position.x + ent.position.y;
+      if (!entityByDepth.has(d)) entityByDepth.set(d, []);
+      entityByDepth.get(d).push(ent);
+    }
 
-    for (let vy = -1; vy <= VIEWPORT_ROWS; vy++) {
-      for (let vx = -1; vx <= VIEWPORT_COLS; vx++) {
-        const tx = startX + vx;
-        const ty = startY + vy;
+    const playerDepth = player.position.x + player.position.y;
+    const maxDepth = mapData.width + mapData.height - 2;
 
-        if (ty < 0 || ty >= mapData.height || tx < 0 || tx >= mapData.width) continue;
+    // Iterate depth levels back-to-front (painter's algorithm)
+    for (let depth = 0; depth <= maxDepth; depth++) {
+      // Draw tiles at this depth
+      const txMin = Math.max(0, depth - mapData.height + 1);
+      const txMax = Math.min(depth, mapData.width - 1);
+
+      for (let tx = txMin; tx <= txMax; tx++) {
+        const ty = depth - tx;
+        if (!camera.isVisible(tx, ty)) continue;
 
         const posKey = `${tx},${ty}`;
-        const isVisible = fovSet ? fovSet.has(posKey) : true;
-        const isExplored = exploredSet.has(posKey);
+        const isVis = fovSet ? fovSet.has(posKey) : true;
+        const isExp = exploredSet.has(posKey);
+        if (!isVis && !isExp) continue;
 
-        if (!isVisible && !isExplored) continue;
+        const screen = camera.tileToScreen(tx, ty);
 
-        const screenX = vx * TILE_SIZE - offsetX;
-        const screenY = vy * TILE_SIZE - offsetY;
-
-        // Draw ground layer
+        // Ground layer
         const groundTile = mapData.groundGrid[ty][tx];
-        this._drawTile(screenX, screenY, groundTile, isVisible);
+        this._drawTileSprite(screen.x, screen.y, groundTile, isVis);
 
-        // Draw object layer
+        // Object layer
         if (mapData.objectGrid) {
           const objTile = mapData.objectGrid[ty][tx];
           if (objTile !== Tiles.VOID) {
-            this._drawTile(screenX, screenY, objTile, isVisible);
+            this._drawTileSprite(screen.x, screen.y, objTile, isVis);
           }
         }
       }
-    }
-  }
 
-  /**
-   * Draw a single tile.
-   */
-  _drawTile(screenX, screenY, tileId, lit) {
-    const props = TILE_PROPS[tileId];
-    if (!props || tileId === Tiles.VOID) return;
-
-    const dimFactor = lit ? 1.0 : 0.4;
-
-    // Draw background
-    this.ctx.fillStyle = this._dimColor(props.bg, dimFactor);
-    this.ctx.fillRect(screenX, screenY, TILE_SIZE, TILE_SIZE);
-
-    // Draw character
-    if (props.char && props.char !== ' ') {
-      this.ctx.fillStyle = this._dimColor(props.fg, dimFactor);
-      this.ctx.font = `${TILE_SIZE - 4}px monospace`;
-      this.ctx.fillText(props.char, screenX + TILE_SIZE / 2, screenY + TILE_SIZE / 2 + 1);
-    }
-  }
-
-  /**
-   * Draw entities (player, NPCs, enemies, items).
-   */
-  drawEntities(entities, camera, fovSet) {
-    for (const entity of entities) {
-      if (!entity.position) continue;
-      if (!camera.isVisible(entity.position.x, entity.position.y)) continue;
-
-      const posKey = `${entity.position.x},${entity.position.y}`;
-      if (fovSet && !fovSet.has(posKey)) continue;
-
-      const screen = camera.tileToScreen(entity.position.x, entity.position.y);
-      const offsetX = (camera.x - Math.floor(camera.x)) * TILE_SIZE;
-      const offsetY = (camera.y - Math.floor(camera.y)) * TILE_SIZE;
-      const sx = screen.x - offsetX;
-      const sy = screen.y - offsetY;
-
-      // Draw entity character
-      this.ctx.fillStyle = entity.sprite?.bg || 'transparent';
-      if (entity.sprite?.bg) {
-        this.ctx.fillRect(sx, sy, TILE_SIZE, TILE_SIZE);
+      // Draw entities at this depth
+      const ents = entityByDepth.get(depth);
+      if (ents) {
+        for (const ent of ents) {
+          const posKey = `${ent.position.x},${ent.position.y}`;
+          const visible = fovSet ? fovSet.has(posKey) : true;
+          if (!visible) continue; // entities only shown when in FOV
+          const screen = camera.tileToScreen(ent.position.x, ent.position.y);
+          this._drawEntity(screen.x, screen.y, ent);
+        }
       }
 
-      this.ctx.fillStyle = entity.sprite?.fg || Colors.WHITE;
-      this.ctx.font = `bold ${TILE_SIZE - 2}px monospace`;
-      this.ctx.fillText(
-        entity.sprite?.char || '?',
-        sx + TILE_SIZE / 2,
-        sy + TILE_SIZE / 2 + 1
-      );
+      // Draw player at correct depth
+      if (depth === playerDepth) {
+        const screen = camera.tileToScreen(player.position.x, player.position.y);
+        this._drawPlayer(screen.x, screen.y);
+      }
     }
   }
 
   /**
-   * Draw the player with a highlight.
+   * Draw a cached tile sprite at isometric screen position.
    */
-  drawPlayer(player, camera) {
-    if (!player.position) return;
+  _drawTileSprite(cx, cy, tileId, lit) {
+    const sprite = this.tileSprites.get(tileId);
+    if (!sprite) return;
 
-    const screen = camera.tileToScreen(player.position.x, player.position.y);
-    const offsetX = (camera.x - Math.floor(camera.x)) * TILE_SIZE;
-    const offsetY = (camera.y - Math.floor(camera.y)) * TILE_SIZE;
-    const sx = screen.x - offsetX;
-    const sy = screen.y - offsetY;
+    const dx = cx - HW;
+    const dy = cy - HH - sprite.offsetY;
 
-    // Player highlight/glow
-    this.ctx.fillStyle = 'rgba(51, 255, 51, 0.15)';
-    this.ctx.fillRect(sx - 2, sy - 2, TILE_SIZE + 4, TILE_SIZE + 4);
+    if (!lit) this.ctx.globalAlpha = 0.4;
+    this.ctx.drawImage(sprite.canvas, dx, dy);
+    if (!lit) this.ctx.globalAlpha = 1;
+  }
 
-    // Player character
+  /**
+   * Draw an entity (NPC, enemy, container) as a simple figure.
+   */
+  _drawEntity(cx, cy, entity) {
+    const color = entity.sprite?.fg || Colors.WHITE;
+
+    // Ground shadow
+    this.ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    this._fillDiamond(cx, cy + 2, 10, 5);
+
+    if (entity.type === 'container' || entity.type === 'item_pickup') {
+      // Draw as a circle indicator
+      this.ctx.fillStyle = color;
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy - 6, 6, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      this.ctx.lineWidth = 1;
+      this.ctx.stroke();
+    } else {
+      // Draw humanoid figure
+      this.ctx.fillStyle = color;
+      // Head
+      this.ctx.beginPath();
+      this.ctx.arc(cx, cy - 22, 4, 0, Math.PI * 2);
+      this.ctx.fill();
+      // Torso
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx - 5, cy - 17);
+      this.ctx.lineTo(cx + 5, cy - 17);
+      this.ctx.lineTo(cx + 3, cy - 4);
+      this.ctx.lineTo(cx - 3, cy - 4);
+      this.ctx.closePath();
+      this.ctx.fill();
+      // Legs
+      this.ctx.fillRect(cx - 3, cy - 4, 2, 5);
+      this.ctx.fillRect(cx + 1, cy - 4, 2, 5);
+    }
+  }
+
+  /**
+   * Draw the player character with a green glow.
+   */
+  _drawPlayer(cx, cy) {
+    // Glow on ground
+    this.ctx.fillStyle = 'rgba(51, 255, 51, 0.08)';
+    this._fillDiamond(cx, cy, HW, HH);
+
+    // Ground shadow
+    this.ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    this._fillDiamond(cx, cy + 2, 12, 6);
+
+    // Player figure (green, slightly larger)
     this.ctx.fillStyle = Colors.PLAYER;
-    this.ctx.font = `bold ${TILE_SIZE - 2}px monospace`;
-    this.ctx.fillText('@', sx + TILE_SIZE / 2, sy + TILE_SIZE / 2 + 1);
+    // Head
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy - 24, 5, 0, Math.PI * 2);
+    this.ctx.fill();
+    // Torso
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx - 6, cy - 18);
+    this.ctx.lineTo(cx + 6, cy - 18);
+    this.ctx.lineTo(cx + 4, cy - 4);
+    this.ctx.lineTo(cx - 4, cy - 4);
+    this.ctx.closePath();
+    this.ctx.fill();
+    // Legs
+    this.ctx.fillRect(cx - 4, cy - 4, 3, 5);
+    this.ctx.fillRect(cx + 1, cy - 4, 3, 5);
+
+    // Tile highlight ring
+    this.ctx.strokeStyle = 'rgba(51, 255, 51, 0.25)';
+    this.ctx.lineWidth = 1;
+    this._strokeDiamond(cx, cy, HW + 2, HH + 1);
   }
 
   /**
@@ -166,87 +203,62 @@ export class Renderer {
   drawPath(path, camera) {
     if (!path || path.length === 0) return;
 
-    const offsetX = (camera.x - Math.floor(camera.x)) * TILE_SIZE;
-    const offsetY = (camera.y - Math.floor(camera.y)) * TILE_SIZE;
-
     this.ctx.fillStyle = 'rgba(51, 255, 51, 0.2)';
     for (const pos of path) {
       if (!camera.isVisible(pos.x, pos.y)) continue;
-      const screen = camera.tileToScreen(pos.x, pos.y);
-      this.ctx.fillRect(
-        screen.x - offsetX + 4,
-        screen.y - offsetY + 4,
-        TILE_SIZE - 8,
-        TILE_SIZE - 8
-      );
+      const s = camera.tileToScreen(pos.x, pos.y);
+      this._fillDiamond(s.x, s.y, HW - 6, HH - 3);
     }
   }
 
   /**
    * Draw hover highlight on a tile.
    */
-  drawHover(tileX, tileY, camera, color = 'rgba(255, 255, 255, 0.15)') {
+  drawHover(tileX, tileY, camera, color = 'rgba(255, 255, 255, 0.2)') {
     if (!camera.isVisible(tileX, tileY)) return;
 
-    const screen = camera.tileToScreen(tileX, tileY);
-    const offsetX = (camera.x - Math.floor(camera.x)) * TILE_SIZE;
-    const offsetY = (camera.y - Math.floor(camera.y)) * TILE_SIZE;
-
+    const s = camera.tileToScreen(tileX, tileY);
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = 1;
-    this.ctx.strokeRect(
-      screen.x - offsetX + 0.5,
-      screen.y - offsetY + 0.5,
-      TILE_SIZE - 1,
-      TILE_SIZE - 1
-    );
+    this._strokeDiamond(s.x, s.y, HW, HH);
   }
 
   /**
    * Draw combat range indicator.
    */
   drawCombatRange(centerX, centerY, range, camera, color = 'rgba(255, 51, 51, 0.1)') {
-    const offsetX = (camera.x - Math.floor(camera.x)) * TILE_SIZE;
-    const offsetY = (camera.y - Math.floor(camera.y)) * TILE_SIZE;
-
+    this.ctx.fillStyle = color;
     for (let dy = -range; dy <= range; dy++) {
       for (let dx = -range; dx <= range; dx++) {
         if (Math.abs(dx) + Math.abs(dy) > range) continue;
         const tx = centerX + dx;
         const ty = centerY + dy;
         if (!camera.isVisible(tx, ty)) continue;
-        const screen = camera.tileToScreen(tx, ty);
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(screen.x - offsetX, screen.y - offsetY, TILE_SIZE, TILE_SIZE);
+        const s = camera.tileToScreen(tx, ty);
+        this._fillDiamond(s.x, s.y, HW, HH);
       }
     }
   }
 
-  /**
-   * Dim a hex color by a factor (0-1).
-   */
-  _dimColor(hex, factor) {
-    if (factor >= 1) return hex;
-    const r = parseInt(hex.slice(1, 2), 16) * 17;
-    const g = parseInt(hex.slice(2, 3), 16) * 17;
-    const b = parseInt(hex.slice(3, 4), 16) * 17;
+  // ---- Diamond drawing helpers (centered on cx, cy) ----
 
-    // Handle both 3 and 6 char hex
-    let red, green, blue;
-    if (hex.length === 4) {
-      red = parseInt(hex[1], 16) * 17;
-      green = parseInt(hex[2], 16) * 17;
-      blue = parseInt(hex[3], 16) * 17;
-    } else {
-      red = parseInt(hex.slice(1, 3), 16);
-      green = parseInt(hex.slice(3, 5), 16);
-      blue = parseInt(hex.slice(5, 7), 16);
-    }
+  _fillDiamond(cx, cy, hw, hh) {
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx, cy - hh);
+    this.ctx.lineTo(cx + hw, cy);
+    this.ctx.lineTo(cx, cy + hh);
+    this.ctx.lineTo(cx - hw, cy);
+    this.ctx.closePath();
+    this.ctx.fill();
+  }
 
-    red = Math.floor(red * factor);
-    green = Math.floor(green * factor);
-    blue = Math.floor(blue * factor);
-
-    return `rgb(${red},${green},${blue})`;
+  _strokeDiamond(cx, cy, hw, hh) {
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx, cy - hh);
+    this.ctx.lineTo(cx + hw, cy);
+    this.ctx.lineTo(cx, cy + hh);
+    this.ctx.lineTo(cx - hw, cy);
+    this.ctx.closePath();
+    this.ctx.stroke();
   }
 }

@@ -7,8 +7,11 @@
 export const TILE_SIZE = 24;
 export const VIEWPORT_COLS = 40;
 export const VIEWPORT_ROWS = 24;
-export const CANVAS_WIDTH = VIEWPORT_COLS * TILE_SIZE;
-export const CANVAS_HEIGHT = VIEWPORT_ROWS * TILE_SIZE;
+export const ISO_TILE_W = 64;
+export const ISO_TILE_H = 32;
+export const ISO_TILE_DEPTH = 24;
+export const CANVAS_WIDTH = 1280;
+export const CANVAS_HEIGHT = 800;
 
 // ---- Game States ----
 export const GameState = {
