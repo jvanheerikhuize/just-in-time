@@ -101,7 +101,7 @@ export class Renderer {
       // Draw player at correct depth
       if (depth === playerDepth) {
         const screen = camera.tileToScreen(player.position.x, player.position.y);
-        this._drawPlayer(screen.x, screen.y);
+        this._drawPlayer(screen.x, screen.y, player.facing);
       }
     }
   }
@@ -213,7 +213,7 @@ export class Renderer {
   /**
    * Draw the player character with a green glow and detailed figure.
    */
-  _drawPlayer(cx, cy) {
+  _drawPlayer(cx, cy, facing) {
     // Glow on ground
     this.ctx.fillStyle = 'rgba(51, 255, 51, 0.08)';
     this._fillDiamond(cx, cy, HW, HH);
@@ -280,6 +280,28 @@ export class Renderer {
     this.ctx.fillStyle = '#543';
     this.ctx.fillRect(cx - 4, cy + 1, 3, 2);
     this.ctx.fillRect(cx + 1, cy + 1, 3, 2);
+
+    // Facing direction chevron on ground plane
+    if (facing) {
+      // Map tile direction to isometric screen offset
+      // N(0,-1)→upper-right, S(0,1)→lower-left, W(-1,0)→upper-left, E(1,0)→lower-right
+      const isoX = (facing.x - facing.y) * 0.5;
+      const isoY = (facing.x + facing.y) * 0.25;
+      const dist = 16;
+      const ax = cx + isoX * dist;
+      const ay = cy + isoY * dist;
+
+      this.ctx.fillStyle = 'rgba(51, 255, 51, 0.5)';
+      this.ctx.beginPath();
+      // Small triangle pointing in the facing direction
+      const perpX = -isoY;
+      const perpY = isoX;
+      this.ctx.moveTo(ax + isoX * 5, ay + isoY * 5);
+      this.ctx.lineTo(ax - perpX * 3, ay - perpY * 3);
+      this.ctx.lineTo(ax + perpX * 3, ay + perpY * 3);
+      this.ctx.closePath();
+      this.ctx.fill();
+    }
 
     // Tile highlight ring
     this.ctx.strokeStyle = 'rgba(51, 255, 51, 0.25)';

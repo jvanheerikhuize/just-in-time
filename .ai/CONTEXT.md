@@ -36,7 +36,7 @@
 |-------|------------|
 | Language | Vanilla JavaScript (ES Modules) |
 | Framework | None (no framework, no build step) |
-| Rendering | HTML5 Canvas (tile-based ASCII art) |
+| Rendering | HTML5 Canvas (isometric pixel-based) |
 | Styling | CSS (single stylesheet) |
 | Serving | `npx serve` (static file server) |
 | Storage | LocalStorage (save games) |
@@ -54,6 +54,15 @@
 - [ ] Expanded wasteland map areas
 
 ### Recent Changes
+- 2026-02-10: Player facing direction tracking with compass HUD and directional chevron on sprite
+- 2026-02-10: Reputation UI display in character panel (RELATIONSHIPS section with color-coded tiers)
+- 2026-02-10: Fixed map exit coordinates (Vault 42 and Wastes exits aligned with v/^ tiles)
+- 2026-02-10: NPC reputation system with thresholds (Hostile/Unfriendly/Friendly/Allied/Romance)
+- 2026-02-10: Reputation-gated dialog branches for Scarlett, Mayor, Doc Feelgood, Rusty
+- 2026-02-10: Faction allies system (killing entity penalizes rep with allies)
+- 2026-02-10: Entity persistence across map transitions (dead enemies stay dead, looted containers stay empty)
+- 2026-02-10: Minimap entity colors based on reputation tier
+- 2026-02-10: Isometric pixel-based renderer (replaced ASCII tile rendering)
 - 2026-02-09: Initial commit with v0.1.0 "Unfrozen" first playable release
 - 2026-02-09: Implemented W.A.S.T.E.D. attribute system, turn-based combat, branching dialog trees
 - 2026-02-09: 6 quests (3 main, 3 side), 6 NPCs, 3 enemy types
@@ -61,26 +70,27 @@
 ### Known Issues
 
 **Critical:**
-- HUD HP color is red at >= 50% health (should be green) -- UIManager.js:254
-- Buff consumable effects are permanent (message says "temporarily") -- InventorySystem.js:119
-- Save/load loses entity states across maps (killed enemies respawn) -- MapSystem.js:156, Game.js:572
-- FOV only checks ground layer (player can see through closed doors) -- Game.js:506
-- Pathfinding only checks ground layer (routes through object-layer walls) -- Game.js:249
-- Camera snaps on load (loadMap repositions before save data restores position) -- Game.js:587
+- HUD HP color is red at >= 50% health (should be green) -- UIManager.js
+- Buff consumable effects are permanent (message says "temporarily") -- InventorySystem.js
+- FOV only checks ground layer (player can see through closed doors) -- Game.js
+- Pathfinding only checks ground layer (routes through object-layer walls) -- Game.js
+- Camera snaps on load (loadMap repositions before save data restores position) -- Game.js
 
 **Moderate:**
-- Enemies walk through walls during combat movement -- CombatSystem.js:226
-- MAP button and M hotkey have no backing panel implementation
+- Enemies walk through walls during combat movement -- CombatSystem.js
 - Settings button on main menu has no handler
 - Doctor's Orders quest requires talking to Doc Feelgood again after starting
 - Weapons have infinite ammo (ammoType property unused)
 - Per-weapon AP costs ignored (global constants used instead)
 
 **Minor:**
-- Dead variables in Renderer._dimColor
 - MAX_SAVES constant unused, save slots unlimited
 - Tab key prevented but unused
 - Combat turn order calculated but not used (all enemies act simultaneously)
+
+**Resolved:**
+- ~~Save/load loses entity states across maps~~ - Fixed: entity persistence in Game.loadMap()
+- ~~Map exit coordinates misaligned with v/^ tiles~~ - Fixed: coordinates updated in maps.js
 
 ---
 
@@ -92,14 +102,15 @@
   │                │                  │
   ├─[MapSystem]    ├─[Attributes]     └─[Items]
   ├─[CombatSystem] ├─[Skills]
-  ├─[DialogSystem] └─[Position]
-  ├─[QuestSystem]
-  └─[SaveSystem]
+  ├─[DialogSystem] ├─[Position]
+  ├─[QuestSystem]  ├─[Facing]
+  ├─[SaveSystem]   └─[Reputation{}] (npcId -> integer)
+  └─[Reputation Thresholds: -50 Hostile, -25 Unfriendly, +25 Friendly, +50 Allied, +75 Romance]
 
 [Map] ──contains── [Entities] (NPCs, Enemies, Containers)
-  │
-  ├─[GroundGrid] (base64-encoded tile layers)
-  ├─[ObjectGrid]
+  │                    │
+  ├─[GroundGrid]       ├─[allies[]] (faction links)
+  ├─[ObjectGrid]       └─[EntityStates] (persisted across map transitions)
   ├─[Spawns]
   └─[Exits] ──link to── [Other Maps]
 ```
@@ -107,19 +118,20 @@
 ### Game Systems
 | System | Responsibility | Key Data |
 |--------|---------------|----------|
-| MapSystem | Map loading, tile lookups, entity placement | Maps, tile grids, exits |
+| MapSystem | Map loading, tile lookups, entity placement, entity persistence | Maps, tile grids, exits, entityStates |
 | CharacterSystem | Attributes, skills, level-up, derived stats | W.A.S.T.E.D. attributes |
 | CombatSystem | Turn-based combat, hit/miss, damage | AP costs, accuracy, initiative |
-| DialogSystem | Branching conversations, skill checks | Dialog trees, conditions, effects |
+| DialogSystem | Branching conversations, skill checks, reputation effects | Dialog trees, conditions, effects |
 | QuestSystem | Quest tracking, objective completion | Quest stages, objectives, rewards |
 | InventorySystem | Item management, equip/use | Items, weight, equipment slots |
 | SaveSystem | Save/load to LocalStorage | Full game state serialization |
 
 ### Critical Paths
 1. **New Game**: Main Menu -> Character Creation (W.A.S.T.E.D.) -> Vault 42 -> Tutorial Quest
-2. **Exploration**: Move (click/WASD) -> FOV update -> Interact (entities/tiles) -> Map exits
-3. **Combat**: Encounter hostile -> Turn-based (attack/shoot/item/flee) -> XP/Loot -> Return to exploration
-4. **Dialog**: Interact with NPC -> Dialog tree -> Skill checks -> Effects (quests, flags, items)
+2. **Exploration**: Move (click/WASD) -> FOV update -> Facing direction update -> Interact (entities/tiles) -> Map exits
+3. **Combat**: Encounter hostile (or hostile reputation) -> Turn-based (attack/shoot/item/flee) -> XP/Loot -> Reputation penalty to allies -> Return to exploration
+4. **Dialog**: Interact with NPC -> Dialog tree -> Skill checks -> Reputation conditions -> Effects (quests, flags, items, reputation changes)
+5. **Reputation**: Dialog choices/combat kills -> Reputation changes -> Faction ally penalties -> NPC hostility/dialog gating -> UI display in character panel
 
 ---
 
@@ -148,7 +160,8 @@ src/
     ├── engine/
     │   ├── Game.js           # Main game class: state, loop, input handling
     │   ├── Camera.js         # Viewport camera (follow player, screen-to-tile)
-    │   ├── Renderer.js       # Canvas tile renderer, fog of war, entity drawing
+    │   ├── Renderer.js       # Isometric pixel renderer, fog of war, entity drawing
+    │   ├── TileSprites.js    # Pre-rendered tile sprite cache for isometric tiles
     │   └── Input.js          # Keyboard + mouse input manager
     ├── systems/
     │   ├── MapSystem.js      # Map loading, tile lookup, entity management
@@ -289,7 +302,7 @@ No environment variables required. The game is entirely client-side with no back
 ### External
 - Inspired by Fallout 1 & 2 (Interplay/Black Isle Studios)
 - Infocom text adventure humor style
-- ASCII/tile-based roguelike rendering traditions
+- Isometric pixel-based rendering with painter's algorithm depth sorting
 
 ---
 
@@ -305,7 +318,7 @@ No environment variables required. The game is entirely client-side with no back
 
 | Field | Value |
 |-------|-------|
-| Last Updated | 2026-02-09 |
+| Last Updated | 2026-02-10 |
 | Update Frequency | After each version release |
 | Owner | Jerry |
 

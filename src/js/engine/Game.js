@@ -99,6 +99,7 @@ export class Game {
       position: { x: 0, y: 0 },
       mapId: 'vault42',
       equipped: { weapon: null, armor: null },
+      facing: { x: 0, y: 1 }, // Default: facing south
     };
 
     // Calculate derived stats
@@ -320,6 +321,9 @@ export class Game {
    * Try to move the player by dx, dy. Handles collisions and interactions.
    */
   _tryMovePlayer(dx, dy) {
+    // Always update facing direction, even if move is blocked
+    this.player.facing = { x: dx, y: dy };
+
     const newX = this.player.position.x + dx;
     const newY = this.player.position.y + dy;
     const mapData = this.mapSystem.getCurrentMap();
@@ -602,6 +606,7 @@ export class Game {
    */
   loadState(saveData) {
     this.player = saveData.player;
+    this.player.facing = this.player.facing || { x: 0, y: 1 };
     this.flags = saveData.flags;
     this.reputation = saveData.reputation || {};
     this.questSystem.loadState(saveData.quests);

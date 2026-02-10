@@ -10,6 +10,7 @@ import { GameState, MsgType, Tiles, ATTRIBUTE_INFO, ATTR_MIN, ATTR_MAX,
          REP_HOSTILE, REP_UNFRIENDLY, REP_FRIENDLY, REP_ALLIED } from '../core/constants.js';
 import { eventBus, Events } from '../core/EventBus.js';
 import { ITEM_DEFS } from '../data/items.js';
+import { ENTITY_DEFS } from '../data/entities.js';
 
 export class UIManager {
   constructor(game) {
@@ -40,6 +41,7 @@ export class UIManager {
       questsPanel: document.getElementById('quests-panel'),
       savePanel: document.getElementById('save-panel'),
       carryWeight: document.getElementById('carry-weight'),
+      statFacing: document.getElementById('stat-facing'),
     };
 
     this._bindEvents();
@@ -282,6 +284,25 @@ export class UIManager {
     } else {
       this.elements.statHp.style.color = '#ff3333';
     }
+
+    // Compass facing direction
+    if (p.facing && this.elements.statFacing) {
+      const dir = this._facingToCardinal(p.facing);
+      this.elements.statFacing.textContent = `Facing: ${dir}`;
+    }
+  }
+
+  _facingToCardinal(facing) {
+    const { x, y } = facing;
+    if (x === 0 && y === -1) return 'N';
+    if (x === 0 && y === 1) return 'S';
+    if (x === -1 && y === 0) return 'W';
+    if (x === 1 && y === 0) return 'E';
+    if (x === 1 && y === -1) return 'NE';
+    if (x === -1 && y === -1) return 'NW';
+    if (x === 1 && y === 1) return 'SE';
+    if (x === -1 && y === 1) return 'SW';
+    return 'S';
   }
 
   updateLocation(mapId) {
@@ -556,6 +577,35 @@ export class UIManager {
         </div>
       `;
     }
+
+    // Reputation / Relationships
+    const repDiv = document.getElementById('char-reputation');
+    repDiv.innerHTML = '<h3 class="section-label">RELATIONSHIPS</h3>';
+    const repEntries = Object.entries(this.game.reputation).filter(([, v]) => v !== 0);
+    if (repEntries.length === 0) {
+      repDiv.innerHTML += '<div style="color: var(--color-text-dim); padding: 5px;">No notable relationships yet.</div>';
+    } else {
+      for (const [npcId, value] of repEntries) {
+        const def = ENTITY_DEFS[npcId];
+        const name = def ? def.name : npcId;
+        const { label, color } = this._getRepTier(value);
+        repDiv.innerHTML += `
+          <div class="rep-row">
+            <span class="rep-name">${name}</span>
+            <span class="rep-tier" style="color: ${color};">${label} (${value})</span>
+          </div>
+        `;
+      }
+    }
+  }
+
+  _getRepTier(value) {
+    if (value >= REP_ALLIED + 25) return { label: 'Devoted', color: '#f4f' };
+    if (value >= REP_ALLIED) return { label: 'Allied', color: '#3f3' };
+    if (value >= REP_FRIENDLY) return { label: 'Friendly', color: '#4af' };
+    if (value <= REP_HOSTILE) return { label: 'Hostile', color: '#f44' };
+    if (value <= REP_UNFRIENDLY) return { label: 'Unfriendly', color: '#a60' };
+    return { label: 'Neutral', color: '#fa0' };
   }
 
   _renderQuests() {

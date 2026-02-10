@@ -728,6 +728,23 @@ body {
 .char-stat-row .label { color: var(--color-text); }
 .char-stat-row .value { color: var(--color-green); }
 
+.rep-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 15px;
+}
+
+.rep-row .rep-name { color: var(--color-text); }
+
+.rep-row .rep-tier {
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-terminal);
+}
+
 /* ---- Tooltip ---- */
 
 #tooltip {

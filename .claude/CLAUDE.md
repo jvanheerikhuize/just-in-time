@@ -9,7 +9,7 @@ Read these files for context:
 
 ## Project
 
-Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas, no frameworks, no build step. Fallout II gameplay with Infocom humor.
+Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas (isometric pixel-based rendering), no frameworks, no build step. Fallout II gameplay with Infocom humor.
 
 ## Rules
 
@@ -34,12 +34,21 @@ Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas, no frameworks, n
 - Check `specs.config.yaml` for pending work
 - Only implement specs with status `approved`
 
+## Key Systems
+
+- **Reputation**: Per-NPC integer values [-100, 100] with tier thresholds in `constants.js` (HOSTILE/UNFRIENDLY/FRIENDLY/ALLIED/ROMANCE). Dialog conditions gate on reputation. Killing entities penalizes rep with their `allies[]`.
+- **Facing**: Player `facing: {x, y}` vector updated on every move attempt. Rendered as isometric chevron + compass HUD.
+- **Entity Persistence**: Dead enemies and looted containers persist across map transitions via `MapSystem.entityStates`.
+- **Isometric Rendering**: Painter's algorithm depth sort. Tile sprites pre-rendered in `TileSprites.js`. Player/entities drawn at isometric screen positions.
+
 ## Key Files
 
 | Purpose | Location |
 |---------|----------|
 | Entry point | `src/js/main.js` |
 | Game engine | `src/js/engine/Game.js` |
+| Isometric renderer | `src/js/engine/Renderer.js` |
+| Tile sprite cache | `src/js/engine/TileSprites.js` |
 | All constants | `src/js/core/constants.js` |
 | EventBus | `src/js/core/EventBus.js` |
 | UI controller | `src/js/ui/UIManager.js` |
@@ -53,6 +62,8 @@ Post-apocalyptic browser RPG. Vanilla JavaScript, HTML5 Canvas, no frameworks, n
 - **Quests**: Add to `data/quests.js` with stages and objectives
 - **Items**: Add to `data/items.js`
 - **Dialogs**: Add to `data/dialogs.js` with branching nodes
+- **Reputation effects**: Use `changeReputation`/`setReputation` dialog effects; add `reputation`/`reputationMax` conditions
+- **Faction allies**: Add `allies: ['entity_id']` to entity definitions for reputation penalties on kill
 
 ## Forbidden Actions
 - Do not introduce build steps, transpilers, or bundlers

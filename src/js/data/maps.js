@@ -170,10 +170,10 @@ export const ALL_MAPS = {
     },
     spawns: {
       start: { x: 4, y: 3 },   // Starting cryo pod
-      entrance: { x: 14, y: 23 }, // From outside (one tile north of exit)
+      entrance: { x: 16, y: 23 }, // From outside (one tile north of exit)
     },
     exits: [
-      { x: 14, y: 24, targetMap: 'wastes', targetSpawn: 'from_vault' },
+      { x: 16, y: 24, targetMap: 'wastes', targetSpawn: 'from_vault' },
     ],
     entities: [
       { id: 'chronos_terminal', x: 11, y: 11 },
@@ -231,11 +231,11 @@ export const ALL_MAPS = {
     spawns: {
       start: { x: 13, y: 23 },
       from_vault: { x: 13, y: 23 },
-      from_dustbowl: { x: 33, y: 23 },
+      from_dustbowl: { x: 35, y: 23 },
     },
     exits: [
       { x: 13, y: 24, targetMap: 'vault42', targetSpawn: 'entrance' },
-      { x: 33, y: 24, targetMap: 'dustbowl', targetSpawn: 'from_wastes' },
+      { x: 35, y: 24, targetMap: 'dustbowl', targetSpawn: 'from_wastes' },
     ],
     entities: [
       { id: 'radroach_1', x: 10, y: 6 },

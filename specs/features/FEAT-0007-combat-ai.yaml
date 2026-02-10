@@ -1,0 +1,148 @@
+# Feature Specification: Combat AI Improvements
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0007"
+  title: "Combat AI Improvements"
+  version: "1.0.0"
+  status: "draft"
+  priority: "medium"
+  author: "Game Design"
+  created_at: "2026-02-10"
+  updated_at: "2026-02-10"
+  tags:
+    - combat
+    - ai
+    - pathfinding
+    - balance
+
+description:
+  summary: |
+    Improve enemy combat behavior with wall-aware movement, sequential turn
+    order, and basic tactical decision-making to replace the current simplistic
+    AI that walks through walls and acts simultaneously.
+
+  problem_statement: |
+    The current combat AI has several issues that break immersion and balance:
+    - Enemies walk through walls during combat movement (no collision check)
+    - Combat turn order is calculated via initiative but unused (all enemies
+      act simultaneously in a single batch)
+    - Enemies have no tactical awareness (always move directly toward player
+      regardless of obstacles or range)
+    - There is no variety in enemy behavior (melee and ranged enemies act
+      identically)
+
+  proposed_solution: |
+    Fix enemy movement to use the existing A* pathfinding (which already exists
+    in utils.js) during combat, respecting walls and obstacles. Implement
+    sequential turn processing based on the already-calculated initiative order.
+    Add basic behavioral profiles: melee enemies close distance, ranged enemies
+    try to maintain optimal range, and all enemies avoid hazard tiles. Add a
+    brief visual delay between enemy turns for readability.
+
+  out_of_scope:
+    - "Cover system or flanking mechanics"
+    - "Enemy group tactics or coordinated behavior"
+    - "Morale or fleeing behavior for enemies"
+    - "Enemy use of consumable items"
+    - "Stealth or detection mechanics during combat"
+
+  dependencies:
+    - "Existing CombatSystem for turn management"
+    - "A* pathfinding in utils.js for wall-aware movement"
+    - "MapSystem for tile collision lookups"
+    - "Object layer collision checks (currently only ground layer is checked)"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "An enemy takes a movement action during combat"
+    when: "There is a wall or obstacle between the enemy and the player"
+    then: "The enemy pathfinds around the obstacle using A*"
+    and:
+      - "Enemies never overlap with wall tiles"
+      - "Enemies never overlap with object-layer blocking tiles"
+      - "If no path exists, the enemy stays in place"
+
+  - id: "AC-002"
+    given: "Multiple enemies are active in combat"
+    when: "The enemy turn begins"
+    then: "Enemies act one at a time in initiative order"
+    and:
+      - "Each enemy's action is visually distinguishable (brief delay between turns)"
+      - "The delay is 300-500ms between enemy actions"
+      - "The combat log shows each enemy's action separately"
+
+  - id: "AC-003"
+    given: "A melee enemy is in combat"
+    when: "It takes its turn"
+    then: "It moves toward the player and attacks if adjacent"
+    and:
+      - "Moves up to its movement allowance toward the player"
+      - "Attacks if within melee range after moving"
+      - "Does not waste AP on movement if already adjacent"
+
+  - id: "AC-004"
+    given: "A ranged enemy is in combat"
+    when: "It takes its turn and the player is within weapon range"
+    then: "It shoots without moving if it has line of sight"
+    and:
+      - "If the player is too close (within 2 tiles), the enemy tries to back away"
+      - "If the player is out of range, the enemy moves closer"
+      - "Line of sight uses the existing FOV algorithm"
+
+  - id: "AC-005"
+    given: "Pathfinding is used during combat"
+    when: "Both ground and object layers have blocking tiles"
+    then: "Both layers are checked for collision"
+    and:
+      - "Closed doors block movement"
+      - "Object-layer walls (furniture, machines) block movement"
+      - "This fixes the known issue of pathfinding only checking ground layer"
+
+technical_requirements:
+  constraints:
+    - "Must use the existing A* implementation in utils.js"
+    - "Enemy turn processing must not block the render loop"
+    - "Total enemy turn phase should not exceed 3 seconds for 5 enemies"
+    - "Must maintain backward compatibility with existing entity definitions"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS maintained during enemy turn animations"
+
+  security:
+    - "Prevent infinite loops in pathfinding if enemies are trapped"
+    - "Cap pathfinding search depth to prevent performance issues"
+
+  scalability: |
+    The behavioral profile system (melee vs ranged) should be extensible
+    to support new behaviors (e.g., healer, bomber) by adding a
+    `combatBehavior` property to entity definitions.
+
+ui_changes:
+  components:
+    - "Combat status: show which enemy is currently acting"
+    - "Combat log: individual messages per enemy action instead of batch"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: true
+  test_scenarios:
+    - "Enemy pathfinds around a wall to reach the player"
+    - "Enemy stops if no valid path exists"
+    - "Enemies act in initiative order, not simultaneously"
+    - "Melee enemy moves to adjacent tile and attacks"
+    - "Ranged enemy shoots from distance without moving"
+    - "Ranged enemy backs away from adjacent player"
+    - "Object layer blocking tiles prevent enemy movement"
+    - "Performance: 5 enemies complete turns within 3 seconds"
+
+rollout:
+  feature_flag: "improved_combat_ai"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Revert CombatSystem.js enemy turn logic to batch processing. The
+    pathfinding improvements in collision checking should remain as they
+    fix bugs. No save data impact.

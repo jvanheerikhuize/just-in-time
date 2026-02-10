@@ -1,0 +1,139 @@
+# Feature Specification: Ammo & Weapon AP System
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0006"
+  title: "Ammo & Weapon AP System"
+  version: "1.0.0"
+  status: "draft"
+  priority: "medium"
+  author: "Game Design"
+  created_at: "2026-02-10"
+  updated_at: "2026-02-10"
+  tags:
+    - combat
+    - weapons
+    - balance
+    - bug-fix
+
+description:
+  summary: |
+    Implement functional ammunition tracking for ranged weapons and per-weapon
+    action point costs, replacing the current infinite-ammo and global-AP-cost
+    behavior with balanced, weapon-specific mechanics.
+
+  problem_statement: |
+    The combat system currently has two known issues that undermine balance:
+    - Weapons have an `ammoType` property that is never checked or consumed,
+      meaning all ranged weapons have infinite ammunition
+    - Per-weapon AP costs defined in ITEM_DEFS are ignored in favor of global
+      constants (AP_COST_ATTACK, AP_COST_SHOOT), making all weapons feel identical
+    These issues reduce tactical depth and make inventory management less
+    meaningful since the player never needs to manage ammo supplies.
+
+  proposed_solution: |
+    Add ammo consumption to ranged attacks in CombatSystem.js, deducting from
+    the player's inventory when shooting. Display ammo count in the combat HUD.
+    Read per-weapon AP costs from the equipped weapon's item definition instead
+    of using global constants. Add ammo items to ITEM_DEFS and distribute them
+    as loot and shop inventory. Show a "no ammo" warning when attempting to
+    shoot without the correct ammo type.
+
+  out_of_scope:
+    - "Ammo crafting or combining"
+    - "Weapon degradation or durability"
+    - "Multiple ammo types per weapon (e.g., armor-piercing)"
+    - "Ammo weight contributing to carry weight"
+
+  dependencies:
+    - "Existing CombatSystem for attack/shoot actions"
+    - "Existing InventorySystem for item management"
+    - "ITEM_DEFS weapon definitions with ammoType and apCost fields"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player has a ranged weapon equipped"
+    when: "They choose the SHOOT action in combat"
+    then: "One unit of the weapon's ammoType is consumed from inventory"
+    and:
+      - "If the player has no matching ammo, the shoot action is disabled"
+      - "A message displays 'No ammo! Need [ammoType]' when attempting to shoot without ammo"
+
+  - id: "AC-002"
+    given: "The combat HUD is displayed"
+    when: "The player has a ranged weapon equipped"
+    then: "The current ammo count for that weapon's ammo type is shown"
+    and:
+      - "Format: 'Ammo: X' next to the weapon name"
+      - "Count updates in real-time as ammo is consumed"
+
+  - id: "AC-003"
+    given: "A weapon has an apCost property defined in ITEM_DEFS"
+    when: "The player uses that weapon to attack or shoot"
+    then: "The weapon's apCost is deducted instead of the global constant"
+    and:
+      - "Melee weapons use their apCost for ATTACK actions"
+      - "Ranged weapons use their apCost for SHOOT actions"
+      - "If apCost is not defined, fall back to the global constant"
+
+  - id: "AC-004"
+    given: "Ammo items are defined in ITEM_DEFS"
+    when: "The player loots enemies or containers"
+    then: "Appropriate ammo items can be found as loot"
+    and:
+      - "At least two ammo types exist: '10mm rounds' and 'energy cells'"
+      - "Ammo is stackable in inventory"
+      - "Ammo has no weight (or negligible weight)"
+
+  - id: "AC-005"
+    given: "The player is in combat with insufficient AP for their weapon"
+    when: "They view available actions"
+    then: "The attack/shoot button shows the AP cost and is disabled if insufficient"
+    and:
+      - "Button text includes AP cost: 'ATTACK (3 AP)' or 'SHOOT (4 AP)'"
+      - "Greyed out if player's remaining AP is less than the cost"
+
+technical_requirements:
+  constraints:
+    - "Must maintain backward compatibility with existing save games"
+    - "Weapons without apCost must fall back to global constants"
+    - "Must not break melee-only combat flow"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS during combat"
+
+  security:
+    - "Ammo count cannot go negative"
+    - "Ensure ammo is actually consumed, not just checked"
+
+  scalability: |
+    The ammo system should support adding new ammo types by simply defining
+    them in ITEM_DEFS. No code changes should be needed for new ammo types.
+
+ui_changes:
+  components:
+    - "Combat HUD: add ammo count display"
+    - "Combat buttons: show per-weapon AP costs"
+    - "Inventory: ammo items appear as stackable entries"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: false
+  test_scenarios:
+    - "Shooting consumes one ammo from inventory"
+    - "Cannot shoot with zero ammo of the required type"
+    - "Per-weapon AP cost is used instead of global constant"
+    - "Fallback to global AP cost when weapon has no apCost defined"
+    - "Ammo count displays correctly in combat HUD"
+    - "Ammo stacks properly in inventory"
+    - "Old saves without ammo items load correctly"
+
+rollout:
+  feature_flag: "ammo_system_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Revert CombatSystem.js to use global AP constants and skip ammo checks.
+    Ammo items can remain in ITEM_DEFS harmlessly. No save data corruption risk.

@@ -6,9 +6,9 @@
 
 | Field | Value |
 |-------|-------|
-| Version | 0.1.0 |
+| Version | 0.2.0-dev |
 | Status | Active |
-| Last Updated | 2026-02-09 |
+| Last Updated | 2026-02-10 |
 | Owner | Jerry |
 
 ---
@@ -55,7 +55,7 @@ No external systems. No server. No API. Fully client-side.
 |--------|--------|-----------|
 | Overall Style | Single-page client-side application | No server needed; runs entirely in browser |
 | Module System | ES Modules (native browser imports) | No bundler/build step; direct browser support |
-| Rendering | HTML5 Canvas 2D | Tile-based ASCII art; Canvas gives pixel control |
+| Rendering | HTML5 Canvas 2D (Isometric) | Isometric pixel projection with depth-sorted painter's algorithm |
 | Communication | Event-driven (pub/sub EventBus) | Decouples game systems; clean separation of concerns |
 | Data Storage | Browser LocalStorage | Simple persistence for save games; no backend needed |
 | Content Format | JS data files (objects/maps) | Easy to author; no parsing step; importable as modules |
@@ -175,9 +175,17 @@ No external systems. No server. No API. Fully client-side.
 │ xp, level      │       │ spawns{}       │
 │ caps           │       │ exits[]        │──links to──▶ [Other Maps]
 │ position {x,y} │       │ entities[]     │──refs──▶ [Entity Defs]
-│ mapId          │       └────────────────┘
-│ equipped{}     │
-└────────────────┘
+│ facing {x,y}   │       └────────────────┘
+│ mapId          │
+│ equipped{}     │       ┌────────────────┐
+│ reputation{}   │──per──▶│ NPC Reputation │ (npcId -> integer, -100 to 100)
+└────────────────┘       │ Hostile: -50   │
+                         │ Unfriendly: -25│
+        │                │ Friendly: +25  │
+        │                │ Allied: +50    │
+        │                │ Romance: +75   │
+        │                └────────────────┘
+        │
         │                ┌────────────────┐
         │                │   Entity       │
         │                ├────────────────┤
@@ -188,6 +196,7 @@ No external systems. No server. No API. Fully client-side.
                          │ dialogId       │──refs──▶ [Dialog Trees]
                          │ items[]        │──refs──▶ [Item Defs]
                          │ loot[]         │
+                         │ allies[]       │ (faction ally entity IDs)
                          └────────────────┘
 
 ┌────────────────┐       ┌────────────────┐       ┌────────────────┐
@@ -282,6 +291,7 @@ flows through a singleton pub/sub instance. Events are defined as string constan
 | `ui:panelOpen` | Game (hotkeys) | UIManager | Open side panel |
 | `ui:panelClose` | Game (hotkeys) | UIManager | Close side panel |
 | `flag:set` | Game | Game (internal) | Story flag changed |
+| `reputation:change` | Game | UIManager (minimap colors) | NPC reputation value changed |
 
 ---
 

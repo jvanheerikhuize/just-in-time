@@ -109,6 +109,43 @@ specifications:
       - "audio"
       - "polish"
 
+  - id: "FEAT-0006"
+    file: "specs/features/FEAT-0006-ammo-weapon-ap.yaml"
+    status: "draft"
+    auto_implement: false
+    priority: "medium"
+    target_version: "1.1.0"
+    notes: "Functional ammo consumption and per-weapon AP costs (fixes infinite ammo bug)"
+    labels:
+      - "combat"
+      - "weapons"
+      - "balance"
+      - "bug-fix"
+
+  - id: "FEAT-0007"
+    file: "specs/features/FEAT-0007-combat-ai.yaml"
+    status: "draft"
+    auto_implement: false
+    priority: "medium"
+    target_version: "1.2.0"
+    notes: "Wall-aware enemy movement, sequential turns, melee/ranged AI profiles"
+    labels:
+      - "combat"
+      - "ai"
+      - "pathfinding"
+
+  - id: "FEAT-0008"
+    file: "specs/features/FEAT-0008-companion-system.yaml"
+    status: "draft"
+    auto_implement: false
+    priority: "low"
+    target_version: "1.3.0"
+    notes: "Recruitable NPC companions via reputation, with combat AI and map barks"
+    labels:
+      - "companion"
+      - "npc"
+      - "reputation"
+
 # Spec categories for organization
 categories:
   features:

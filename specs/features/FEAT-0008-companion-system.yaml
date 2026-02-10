@@ -1,0 +1,179 @@
+# Feature Specification: Companion System
+# Validate against: specs/schemas/feature-spec.schema.json
+
+metadata:
+  id: "FEAT-0008"
+  title: "Companion System"
+  version: "1.0.0"
+  status: "draft"
+  priority: "low"
+  author: "Game Design"
+  created_at: "2026-02-10"
+  updated_at: "2026-02-10"
+  tags:
+    - companion
+    - npc
+    - reputation
+    - combat
+    - exploration
+
+description:
+  summary: |
+    Allow the player to recruit NPCs as traveling companions who follow the
+    player between maps, assist in combat, and provide commentary. Companions
+    are recruited through the reputation system by reaching Allied standing.
+
+  problem_statement: |
+    The wasteland is a lonely place. The reputation system currently gates
+    dialog options but has no major gameplay reward for building high standing
+    with NPCs. Players who invest in social skills and relationship-building
+    have no payoff beyond dialog flavor text. The game lacks a common RPG
+    feature that would add tactical depth to combat and narrative richness
+    to exploration.
+
+  proposed_solution: |
+    Implement a companion system where NPCs with Allied (50+) reputation can
+    be asked to join the player. Companions follow the player on the map,
+    fight alongside them in combat as AI-controlled allies, and offer
+    contextual barks (one-liner comments) when entering new maps or during
+    combat. Only one companion can be active at a time. Companions can be
+    dismissed and re-recruited. Scarlett is the first recruitable companion,
+    with dialog already hinting at this possibility via the reputation system.
+
+  out_of_scope:
+    - "Companion inventory management"
+    - "Companion equipment or leveling"
+    - "Romance mechanics beyond reputation tier naming"
+    - "Companion death (companions are knocked out, not killed)"
+    - "Multiple simultaneous companions"
+    - "Companion-specific quests (future feature)"
+
+  dependencies:
+    - "NPC reputation system (implemented)"
+    - "Entity persistence across map transitions (implemented)"
+    - "CombatSystem for ally combat AI"
+    - "FEAT-0007: Combat AI Improvements (for companion combat behavior)"
+    - "DialogSystem for recruitment conversations"
+
+acceptance_criteria:
+  - id: "AC-001"
+    given: "The player has Allied (50+) reputation with an NPC"
+    when: "They talk to the NPC"
+    then: "A dialog option appears to recruit them as a companion"
+    and:
+      - "The option reads something like 'Want to watch my back out there?'"
+      - "The NPC responds with personality-appropriate acceptance"
+      - "The NPC is marked as the active companion"
+
+  - id: "AC-002"
+    given: "The player has an active companion"
+    when: "The player moves on the map"
+    then: "The companion follows 1-2 tiles behind the player"
+    and:
+      - "The companion uses A* pathfinding to follow"
+      - "The companion does not block the player's movement"
+      - "The companion is rendered as a distinct entity with their sprite"
+
+  - id: "AC-003"
+    given: "The player transitions to a new map"
+    when: "They have an active companion"
+    then: "The companion transitions with them"
+    and:
+      - "The companion spawns adjacent to the player on the new map"
+      - "The companion delivers a contextual bark about the new location"
+      - "Barks are defined per-companion per-map in dialog data"
+
+  - id: "AC-004"
+    given: "Combat is initiated while a companion is active"
+    when: "The combat turn begins"
+    then: "The companion acts as an AI-controlled ally"
+    and:
+      - "The companion has their own turn in initiative order"
+      - "They attack hostile entities using their defined weapon"
+      - "They cannot be directly controlled by the player"
+      - "They use the same combat AI as improved enemies (FEAT-0007)"
+
+  - id: "AC-005"
+    given: "A companion takes enough damage to reach 0 HP"
+    when: "In combat"
+    then: "The companion is knocked out, not killed"
+    and:
+      - "They are incapacitated for the rest of combat"
+      - "They recover to 50% HP after combat ends"
+      - "A message displays '[Name] has been knocked out!'"
+
+  - id: "AC-006"
+    given: "The player has an active companion"
+    when: "They talk to the companion"
+    then: "A dialog option to dismiss them is available"
+    and:
+      - "The companion returns to their original map location"
+      - "Their reputation is preserved"
+      - "They can be re-recruited by talking to them again"
+
+  - id: "AC-007"
+    given: "Scarlett is the first recruitable companion"
+    when: "She is recruited"
+    then: "She has unique companion behaviors"
+    and:
+      - "Combat style: melee (uses a bar stool as weapon, naturally)"
+      - "Barks: sarcastic commentary about locations and enemies"
+      - "Recruitment dialog: references wanting to see the world beyond Dustbowl"
+
+  - id: "AC-008"
+    given: "The player saves the game with an active companion"
+    when: "They load the save"
+    then: "The companion state is fully restored"
+    and:
+      - "Companion position, HP, and active status are saved"
+      - "Old saves without companion data load without errors"
+
+technical_requirements:
+  constraints:
+    - "Maximum one active companion at a time"
+    - "Companions must not block doorways or exits"
+    - "Companion following must not cause performance issues (path recalculation throttling)"
+    - "Must integrate with existing entity persistence system"
+
+  performance:
+    response_time_ms: 16
+    throughput: "60 FPS with companion pathfinding active"
+
+  security:
+    - "Companion HP cannot be exploited to avoid combat consequences"
+    - "Companion cannot be recruited below Allied reputation threshold"
+
+  scalability: |
+    The companion system should support adding new companions by defining
+    them in entities.js with a `recruitable: true` flag and adding recruitment
+    dialog nodes. No code changes needed for additional companions.
+
+ui_changes:
+  components:
+    - "HUD: companion name and HP bar when active"
+    - "Character panel: companion section showing active companion stats"
+    - "Combat overlay: companion turn indicator"
+
+testing_requirements:
+  unit_tests: true
+  integration_tests: true
+  e2e_tests: false
+  performance_tests: true
+  test_scenarios:
+    - "Companion follows player movement with 1-2 tile delay"
+    - "Companion transitions between maps with player"
+    - "Companion fights in combat using AI behavior"
+    - "Companion knocked out at 0 HP, recovers after combat"
+    - "Companion can be dismissed and re-recruited"
+    - "Save/load preserves companion state"
+    - "Old saves load without companion data errors"
+    - "Only one companion active at a time"
+    - "Reputation below Allied prevents recruitment"
+
+rollout:
+  feature_flag: "companion_system_enabled"
+  rollout_strategy: "immediate"
+  rollback_plan: |
+    Remove companion recruitment dialog options from NPC dialog trees.
+    Remove companion-related state from save data (with migration).
+    The reputation system and NPC entities continue to function normally.
