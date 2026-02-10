@@ -3,7 +3,7 @@
  * Coordinates all UI components, handles panel switching, message log.
  */
 
-import { GameState, MsgType, ATTRIBUTE_INFO, ATTR_MIN, ATTR_MAX,
+import { GameState, MsgType, Tiles, ATTRIBUTE_INFO, ATTR_MIN, ATTR_MAX,
          ATTR_DEFAULT, ATTR_BONUS_POINTS, SKILL_FORMULAS,
          BASE_HP, HP_PER_TOUGHNESS, BASE_AP, AP_PER_AGILITY,
          BASE_CARRY, CARRY_PER_STRENGTH } from '../core/constants.js';
@@ -43,6 +43,7 @@ export class UIManager {
 
     this._bindEvents();
     this._bindButtons();
+    this._loadSettings();
   }
 
   _bindEvents() {
@@ -71,6 +72,28 @@ export class UIManager {
         this.game.saveSystem.load('auto');
         this.showScreen('game-screen');
       }
+    });
+
+    document.getElementById('btn-settings')?.addEventListener('click', () => {
+      this._loadSettings();
+      this.showScreen('settings-screen');
+    });
+
+    document.getElementById('btn-settings-back')?.addEventListener('click', () => {
+      this._saveSettings();
+      this.showScreen('main-menu');
+    });
+
+    document.getElementById('setting-fov')?.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById('setting-fov-val').textContent = val;
+      this.game.fovRadius = val;
+    });
+
+    document.getElementById('setting-speed')?.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      document.getElementById('setting-speed-val').textContent = val + 'ms';
+      this.game.moveDelay = val;
     });
 
     // Character creation
@@ -417,6 +440,9 @@ export class UIManager {
       case 'quests':
         this._renderQuests();
         break;
+      case 'map':
+        this._renderMap();
+        break;
       case 'save':
         this.updateSaveSlots();
         break;
@@ -612,5 +638,129 @@ export class UIManager {
 
   _hideTooltip() {
     document.getElementById('tooltip').classList.add('hidden');
+  }
+
+  // ---- Minimap ----
+
+  _renderMap() {
+    const mapData = this.game.mapSystem.getCurrentMap();
+    if (!mapData) return;
+
+    const canvas = document.getElementById('minimap-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Scale tiles to fit panel
+    const tileSize = Math.min(
+      Math.floor(300 / mapData.width),
+      Math.floor(300 / mapData.height),
+      8
+    );
+
+    canvas.width = mapData.width * tileSize;
+    canvas.height = mapData.height * tileSize;
+
+    const exploredSet = this.game.renderer.explored.get(this.game.player.mapId) || new Set();
+    const fovSet = this.game.fovSet;
+
+    // Draw tiles
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let y = 0; y < mapData.height; y++) {
+      for (let x = 0; x < mapData.width; x++) {
+        const key = `${x},${y}`;
+        const isVis = fovSet && fovSet.has(key);
+        const isExp = exploredSet.has(key);
+        if (!isVis && !isExp) continue;
+
+        const tile = mapData.groundGrid[y][x];
+        ctx.fillStyle = this._getMinimapColor(tile);
+        if (!isVis) ctx.globalAlpha = 0.4;
+        ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // Draw exits
+    if (mapData.exits) {
+      ctx.fillStyle = '#ff4';
+      for (const exit of mapData.exits) {
+        ctx.fillRect(exit.x * tileSize, exit.y * tileSize, tileSize, tileSize);
+      }
+    }
+
+    // Draw entities in FOV
+    for (const ent of this.game.entities) {
+      if (!ent.position || ent.alive === false) continue;
+      const key = `${ent.position.x},${ent.position.y}`;
+      if (!fovSet || !fovSet.has(key)) continue;
+      ctx.fillStyle = ent.hostile ? '#f33' : '#fa0';
+      ctx.fillRect(ent.position.x * tileSize, ent.position.y * tileSize, tileSize, tileSize);
+    }
+
+    // Draw player
+    ctx.fillStyle = '#3f3';
+    ctx.fillRect(
+      this.game.player.position.x * tileSize,
+      this.game.player.position.y * tileSize,
+      tileSize, tileSize
+    );
+
+    // Map name
+    document.getElementById('map-name').textContent = mapData.name;
+  }
+
+  _getMinimapColor(tileId) {
+    const colors = {
+      [Tiles.STONE_FLOOR]: '#555',
+      [Tiles.METAL_FLOOR]: '#667',
+      [Tiles.DIRT]: '#865',
+      [Tiles.GRASS]: '#595',
+      [Tiles.SAND]: '#aa8',
+      [Tiles.WOOD_FLOOR]: '#875',
+      [Tiles.STONE_WALL]: '#333',
+      [Tiles.METAL_WALL]: '#445',
+      [Tiles.BRICK_WALL]: '#633',
+      [Tiles.WOOD_WALL]: '#653',
+      [Tiles.DOOR_CLOSED]: '#a70',
+      [Tiles.DOOR_OPEN]: '#a70',
+      [Tiles.DOOR_LOCKED]: '#a40',
+      [Tiles.WATER]: '#35a',
+      [Tiles.TOXIC]: '#5a3',
+      [Tiles.ROAD]: '#776',
+      [Tiles.CRACKED_ROAD]: '#665',
+      [Tiles.RUBBLE]: '#654',
+      [Tiles.DEBRIS]: '#543',
+      [Tiles.FENCE]: '#776',
+    };
+    return colors[tileId] || '#222';
+  }
+
+  // ---- Settings Persistence ----
+
+  _loadSettings() {
+    const saved = localStorage.getItem('jit_settings');
+    if (saved) {
+      const s = JSON.parse(saved);
+      this.game.fovRadius = s.fovRadius ?? 10;
+      this.game.moveDelay = s.moveDelay ?? 120;
+    }
+    const fovEl = document.getElementById('setting-fov');
+    const speedEl = document.getElementById('setting-speed');
+    if (fovEl) {
+      fovEl.value = this.game.fovRadius;
+      document.getElementById('setting-fov-val').textContent = this.game.fovRadius;
+    }
+    if (speedEl) {
+      speedEl.value = this.game.moveDelay;
+      document.getElementById('setting-speed-val').textContent = this.game.moveDelay + 'ms';
+    }
+  }
+
+  _saveSettings() {
+    localStorage.setItem('jit_settings', JSON.stringify({
+      fovRadius: this.game.fovRadius,
+      moveDelay: this.game.moveDelay,
+    }));
   }
 }

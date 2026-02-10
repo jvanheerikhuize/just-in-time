@@ -52,6 +52,26 @@
       </div>
     </div>
 
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen">
+      <h2 class="screen-title">SETTINGS</h2>
+      <div class="settings-content">
+        <div class="setting-row">
+          <span class="setting-label">FOV Radius</span>
+          <input type="range" id="setting-fov" min="6" max="14" value="10" class="setting-slider">
+          <span id="setting-fov-val" class="setting-value">10</span>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Move Speed</span>
+          <input type="range" id="setting-speed" min="50" max="250" value="120" class="setting-slider">
+          <span id="setting-speed-val" class="setting-value">120ms</span>
+        </div>
+      </div>
+      <div class="creation-buttons">
+        <button id="btn-settings-back" class="menu-btn">BACK</button>
+      </div>
+    </div>
+
     <!-- Game Screen -->
     <div id="game-screen" class="screen">
       <div id="game-top-bar">
@@ -141,6 +161,23 @@
       <div class="panel-content">
         <div id="active-quests"></div>
         <div id="completed-quests"></div>
+      </div>
+    </div>
+
+    <div id="map-panel" class="side-panel hidden">
+      <div class="panel-header">
+        <h2>MAP</h2>
+        <button class="panel-close">&times;</button>
+      </div>
+      <div class="panel-content" style="display:flex;flex-direction:column;align-items:center;">
+        <div id="map-name" style="color:var(--color-amber);font-size:16px;margin-bottom:8px;letter-spacing:1px;"></div>
+        <canvas id="minimap-canvas" width="300" height="300" style="border:1px solid var(--color-border);image-rendering:pixelated;"></canvas>
+        <div id="map-legend" style="margin-top:10px;font-size:13px;color:var(--color-text-dim);width:100;">
+          <div><span style="color:#3f3;">&#9632;</span> You</div>
+          <div><span style="color:#ff4;">&#9632;</span> Exit</div>
+          <div><span style="color:#fa0;">&#9632;</span> NPC</div>
+          <div><span style="color:#f33;">&#9632;</span> Hostile</div>
+        </div>
       </div>
     </div>
 

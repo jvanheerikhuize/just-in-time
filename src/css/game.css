@@ -296,6 +296,48 @@ body {
   border-top: 1px solid var(--color-border);
 }
 
+/* ---- Settings Screen ---- */
+
+#settings-screen {
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  background: var(--color-bg);
+  background-image:
+    radial-gradient(ellipse at center, rgba(51, 255, 51, 0.03) 0%, transparent 70%);
+}
+
+.settings-content {
+  width: 400px;
+  margin: 20px 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.setting-label {
+  color: var(--color-text);
+  font-size: 16px;
+  width: 120px;
+}
+
+.setting-slider {
+  flex: 1;
+  accent-color: var(--color-green);
+  cursor: pointer;
+}
+
+.setting-value {
+  color: var(--color-green);
+  font-size: 16px;
+  width: 50px;
+  text-align: right;
+}
+
 /* ---- Game Screen ---- */
 
 #game-screen {

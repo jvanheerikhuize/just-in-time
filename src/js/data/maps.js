@@ -170,7 +170,7 @@ export const ALL_MAPS = {
     },
     spawns: {
       start: { x: 4, y: 3 },   // Starting cryo pod
-      entrance: { x: 14, y: 24 }, // From outside
+      entrance: { x: 14, y: 23 }, // From outside (one tile north of exit)
     },
     exits: [
       { x: 14, y: 24, targetMap: 'wastes', targetSpawn: 'from_vault' },
@@ -194,8 +194,8 @@ export const ALL_MAPS = {
       ground: dustbowlGround.data,
     },
     spawns: {
-      start: { x: 28, y: 27 },    // South entrance
-      from_wastes: { x: 28, y: 27 },
+      start: { x: 28, y: 26 },    // South entrance (one tile north of exit)
+      from_wastes: { x: 28, y: 26 },
     },
     exits: [
       { x: 28, y: 27, targetMap: 'wastes', targetSpawn: 'from_dustbowl' },
@@ -229,9 +229,9 @@ export const ALL_MAPS = {
       ground: wastesGround.data,
     },
     spawns: {
-      start: { x: 13, y: 24 },
-      from_vault: { x: 13, y: 24 },
-      from_dustbowl: { x: 33, y: 24 },
+      start: { x: 13, y: 23 },
+      from_vault: { x: 13, y: 23 },
+      from_dustbowl: { x: 33, y: 23 },
     },
     exits: [
       { x: 13, y: 24, targetMap: 'vault42', targetSpawn: 'entrance' },

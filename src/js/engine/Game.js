@@ -296,6 +296,9 @@ export class Game {
     if (this.input.isKeyJustPressed('q')) {
       eventBus.emit(Events.UI_PANEL_OPEN, 'quests');
     }
+    if (this.input.isKeyJustPressed('m')) {
+      eventBus.emit(Events.UI_PANEL_OPEN, 'map');
+    }
     if (this.input.isKeyJustPressed('escape')) {
       eventBus.emit(Events.UI_PANEL_CLOSE);
     }
@@ -345,8 +348,8 @@ export class Game {
       return false;
     }
 
-    // Check map exits
-    this._checkMapExits(newX, newY);
+    // Check map exits (returns true if map changed, so we stop here)
+    if (this._checkMapExits(newX, newY)) return true;
 
     // Move player
     this.player.position.x = newX;
@@ -359,14 +362,15 @@ export class Game {
 
   _checkMapExits(x, y) {
     const mapData = this.mapSystem.getCurrentMap();
-    if (!mapData || !mapData.exits) return;
+    if (!mapData || !mapData.exits) return false;
 
     for (const exit of mapData.exits) {
       if (exit.x === x && exit.y === y) {
         eventBus.emit(Events.MAP_CHANGE, exit.targetMap, exit.targetSpawn);
-        return;
+        return true;
       }
     }
+    return false;
   }
 
   _getEntityAt(x, y) {
