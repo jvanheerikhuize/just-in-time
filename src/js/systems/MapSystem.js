@@ -147,20 +147,22 @@ export class MapSystem {
 
       case Tiles.DOOR_LOCKED: {
         const hasKey = this.game.inventorySystem.hasItem('key_' + this.currentMapId);
-        const lockpickSkill = this.game.player.skills.lockpick || 0;
 
         if (hasKey) {
           grid[y][x] = Tiles.DOOR_OPEN;
-          eventBus.emit(Events.UI_MESSAGE, 'action', 'You unlock the door with the key.');
-          this.game.updateFOV();
-        } else if (lockpickSkill >= 30) {
-          grid[y][x] = Tiles.DOOR_OPEN;
-          eventBus.emit(Events.UI_MESSAGE, 'action',
-            'You pick the lock with the finesse of someone who definitely didn\'t learn this from a cereal box manual.');
+          eventBus.emit(Events.UI_MESSAGE, 'action', 'You unlock the door using your access key.');
           this.game.updateFOV();
         } else {
-          eventBus.emit(Events.UI_MESSAGE, 'warning',
-            'The door is locked. You\'d need a key or better lockpick skills. Or a very large rock, but that\'s not in your skill tree.');
+          const result = this.game.characterSystem.skillCheck('lockpick', 40);
+          if (result.success) {
+            grid[y][x] = Tiles.DOOR_OPEN;
+            eventBus.emit(Events.UI_MESSAGE, 'action',
+              `[Lockpick check passed: ${result.roll}/${result.target}] You work the tumblers with practiced patience. The lock yields.`);
+            this.game.updateFOV();
+          } else {
+            eventBus.emit(Events.UI_MESSAGE, 'warning',
+              `[Lockpick check failed: ${result.roll}/${result.target}] The lock refuses to cooperate. Try hacking the nearby terminal or find a key.`);
+          }
         }
         break;
       }

@@ -89,6 +89,12 @@ export const QUEST_DEFS = {
           { type: 'fetch', target: 'water_chip', count: 1, description: 'Find a Water Purification Chip' },
         ],
       },
+      return_chip: {
+        description: 'You found the water purification chip. Return it to Mayor Bottlecap in Dustbowl before the settlement runs dry.',
+        objectives: [
+          { type: 'talk', target: 'mayor_bottlecap', count: 1, description: 'Return the chip to Mayor Bottlecap' },
+        ],
+      },
     },
     rewards: {
       xp: 300,

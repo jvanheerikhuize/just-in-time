@@ -124,7 +124,7 @@ const dustbowlGround = encodeMap(DUSTBOWL_GROUND);
 // THE WASTES - Wilderness between locations
 // ============================================================
 const WASTES_GROUND = `
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
 ~~~::::::::::::::::::::::::::::::::::~~~::
 ~~:::::::::::;;;;;:::::::::::::::::::~~:::
 ~::::::::;;;;;;;;;;;;;;::::::::::::::~::::
@@ -153,6 +153,49 @@ const WASTES_GROUND = `
 `;
 
 const wastesGround = encodeMap(WASTES_GROUND);
+
+// ============================================================
+// WATER TREATMENT PLANT - Pre-war industrial dungeon
+// North of the wastes. Overrun with mutants and automated defenses.
+// Layout (north to south):
+//   Rows 0-3:   Purification Chamber (boss + water chip)
+//   Row  4:     Wall w/ door separating purification from control room
+//   Rows 5-7:   Control Room (lore terminal, supply crate)
+//   Row  8:     Wall w/ LOCKED DOOR separating control from processing
+//   Rows 9-13:  Processing Area (toxic waste pools, sentry turrets,
+//                 access control terminal adjacent to locked door)
+//   Row  14:    Wall w/ door separating processing from entry lobby
+//   Rows 15-18: Entry/Lobby (mutant roaches, rubble, debris)
+//   Row  19:    South wall
+//   Rows 20-22: Exterior path with EXIT_SOUTH tile
+// ============================================================
+const TREATMENT_PLANT_GROUND = `
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,x,,,,,,,,,,H
+HHHHHHHHHHHHHHHHH+HHHHHHHHHHHHHHHHHH
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+HHHHHHHHHHHHHHHHHLHHHHHHHHHHHHHHHHHH
+H,,,,,TTTTTT,,,,,,,,,,,TTTTTTTTTTTTH
+H,,,TTTTTTTTTTT,,,,,,TTTTTTTTTTTT,,H
+H,,,TTTTTTTTTTT,,,,,,TTTTTTTTTTTT,,H
+H,,,,,TTTTTTTTTTTTTTTTTTTTTTTTT,,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+HHHHHHHHHHHHHHHHH+HHHHHHHHHHHHHHHHHH
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,r,,,,,d,,,,,,,,,,,,,d,,,,,,,r,,,H
+H,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,H
+H,,,d,,,,,,,,,,,,,,,,,,,,,,,,d,,,,,H
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+                 :::::
+                 v::::
+                 :::::
+`;
+
+const treatmentPlantGround = encodeMap(TREATMENT_PLANT_GROUND);
 
 // ============================================================
 // MAP REGISTRY
@@ -232,10 +275,12 @@ export const ALL_MAPS = {
       start: { x: 13, y: 23 },
       from_vault: { x: 13, y: 23 },
       from_dustbowl: { x: 35, y: 23 },
+      from_treatment_plant: { x: 20, y: 1 },
     },
     exits: [
       { x: 13, y: 24, targetMap: 'vault42', targetSpawn: 'entrance' },
       { x: 35, y: 24, targetMap: 'dustbowl', targetSpawn: 'from_wastes' },
+      { x: 20, y: 0, targetMap: 'treatment_plant', targetSpawn: 'entrance' },
     ],
     entities: [
       { id: 'radroach_1', x: 10, y: 6 },
@@ -245,5 +290,39 @@ export const ALL_MAPS = {
       { id: 'road_sign', x: 22, y: 14 },
     ],
     ambient: 'The wasteland stretches in every direction, a monument to humanity\'s talent for self-destruction. At least the sunsets are nice.',
+  },
+
+  treatment_plant: {
+    id: 'treatment_plant',
+    name: 'Water Treatment Plant 7-A',
+    width: treatmentPlantGround.width,
+    height: treatmentPlantGround.height,
+    layers: {
+      ground: treatmentPlantGround.data,
+    },
+    spawns: {
+      entrance: { x: 17, y: 20 },
+      from_wastes: { x: 17, y: 20 },
+    },
+    exits: [
+      { x: 17, y: 21, targetMap: 'wastes', targetSpawn: 'from_treatment_plant' },
+    ],
+    entities: [
+      // Purification Chamber (north)
+      { id: 'overflow_guardian', x: 18, y: 2 },
+      { id: 'plant_chip_container', x: 23, y: 3 },
+      // Control Room
+      { id: 'plant_lore_terminal', x: 8, y: 6 },
+      { id: 'plant_supply_crate', x: 27, y: 6 },
+      // Processing Area - access terminal adjacent to locked door, turrets
+      { id: 'control_terminal', x: 17, y: 9 },
+      { id: 'sentry_turret_1', x: 4, y: 12 },
+      { id: 'sentry_turret_2', x: 31, y: 12 },
+      // Entry / Lobby (south)
+      { id: 'mutant_roach_1', x: 8, y: 16 },
+      { id: 'mutant_roach_2', x: 22, y: 15 },
+      { id: 'mutant_roach_3', x: 15, y: 17 },
+    ],
+    ambient: 'The water treatment plant looms before you: a cathedral of pre-war industry now thick with the smell of toxic waste and decades of disuse. Somewhere in the depths, machinery still hums. Something else hums too, and it sounds significantly more dangerous.',
   },
 };

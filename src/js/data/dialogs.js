@@ -439,6 +439,11 @@ export const ALL_DIALOGS = {
         speaker: 'Mayor Bottlecap',
         text: 'Ah, a newcomer! Welcome to Dustbowl! I\'m Mayor Gerald Morrison - but everyone calls me Mayor Bottlecap. *jingles bottle cap tie proudly* I founded this town with nothing but determination, a dream, and a surprising number of bottle caps. What brings you to our fine establishment?',
         responses: [
+          {
+            text: 'Mayor, I found the water purification chip!',
+            nextNode: 'chip_return',
+            conditions: [{ type: 'item', item: 'water_chip' }],
+          },
           { text: 'I just escaped from Vault 42.', nextNode: 'vault_dweller' },
           { text: 'I heard you have a water problem.', nextNode: 'water_problem' },
           { text: 'I\'m looking for work.', nextNode: 'looking_for_work' },
@@ -627,6 +632,29 @@ export const ALL_DIALOGS = {
         text: 'The water treatment plant is north through the wastes. I\'d give you a map, but honestly, I drew it myself and I\'m not great with directions. Just head north and look for the big building that looks like it processes water. Can\'t miss it. Well, you CAN miss it, but try not to.',
         responses: [
           { text: 'Got it. I\'m on my way.', nextNode: null },
+        ],
+      },
+
+      chip_return: {
+        speaker: 'Mayor Bottlecap',
+        text: '...THE CHIP?! You actually FOUND it?! *nearly trips over his desk in excitement, bottle cap tie jingling furiously* I\'ve been running worst-case scenarios in my head for weeks and now you waltz in with THE ACTUAL CHIP! You beautiful vault-dwelling miracle person! DUSTBOWL IS SAVED! Give it here, give it here, I need to install this immediately!',
+        onEnter: [
+          { type: 'removeItem', item: 'water_chip' },
+          { type: 'completeQuest', quest: 'water_we_gonna_do' },
+          { type: 'changeReputation', npcId: 'mayor_bottlecap', amount: 25 },
+        ],
+        responses: [
+          { text: 'Happy to help, Mayor. Dustbowl deserves it.', nextNode: 'chip_gratitude' },
+          { text: 'Don\'t mention it. Literally, please don\'t - it\'s embarrassing.', nextNode: 'chip_gratitude' },
+        ],
+      },
+
+      chip_gratitude: {
+        speaker: 'Mayor Bottlecap',
+        text: '*installs the chip with shaking hands. The distant hum of dormant machinery grows into a steady, healthy rhythm. The sound of clean water flows again through ancient pipes.* By the bottle cap... it works. Dustbowl will NEVER forget your name. I\'m writing a proclamation. I\'m having it framed. I\'m having it CARVED IN STONE. *jingles tie with deep sincerity* Never.',
+        responses: [
+          { text: 'Take care of this town, Mayor.', nextNode: null },
+          { text: 'Just keep the caps flowing and we\'re square.', nextNode: null },
         ],
       },
     },
@@ -947,6 +975,132 @@ export const ALL_DIALOGS = {
         text: 'Yeah, one more thing. I\'ve been hearing rumors about some kind of... organization. People in matching outfits, moving through the wastes with purpose. Not raiders - too organized. Not traders - too secretive. Don\'t know what their deal is, but they give me the creeps. And I\'ve seen a lot of creepy things.',
         responses: [
           { text: 'Interesting. I\'ll keep my eyes open.', nextNode: null },
+        ],
+      },
+    },
+  },
+
+  // ============================================================
+  // WATER TREATMENT PLANT - Access Control Terminal
+  // ============================================================
+
+  control_terminal_dialog: {
+    startNode: 'access',
+    nodes: {
+      access: {
+        speaker: 'Access Control Terminal',
+        text: 'MUNICIPAL WATER AUTHORITY - ACCESS CONTROL v2.3\nSTATUS: CONTROL ROOM LOCKED\nAUTHORIZATION REQUIRED\n\nThe display shows a facility schematic with a red lock icon next to "CONTROL ROOM." A blinking cursor invites input. The terminal has not been touched in 210 years and seems pathetically grateful for the attention.',
+        responses: [
+          {
+            text: '[Hacking 35] Bypass the security protocols.',
+            nextNode: null,
+            skillCheck: { skill: 'hacking', difficulty: 35, successNode: 'hack_success', failNode: 'hack_fail' },
+          },
+          { text: 'Close the terminal.', nextNode: null },
+        ],
+      },
+
+      hack_success: {
+        speaker: 'Access Control Terminal',
+        text: 'OVERRIDE ACCEPTED.\nCONTROL ROOM ACCESS: UNLOCKED\n\nA soft mechanical click echoes from the door above you. The terminal displays a cheerful animation of a door opening that seems wildly out of place given the facility\'s current state.',
+        onEnter: [
+          { type: 'giveItem', item: 'key_treatment_plant' },
+          { type: 'setFlag', flag: 'control_room_hacked' },
+          { type: 'giveXP', amount: 30 },
+          { type: 'message', msgType: 'action', text: 'You\'ve bypassed the security terminal. The control room door is now unlocked.' },
+        ],
+        responses: [
+          { text: 'Time to see what\'s upstairs.', nextNode: null },
+        ],
+      },
+
+      hack_fail: {
+        speaker: 'Access Control Terminal',
+        text: 'OVERRIDE REJECTED.\nSECURITY PROTOCOLS ACTIVE.\nINTRUSION ATTEMPT LOGGED.\n\nThe terminal adds, with what you swear is robotic smugness: "HAVE A NICE DAY." It does not mean it. It also helpfully suggests trying the door\'s manual override - i.e., a lockpick.',
+        responses: [
+          { text: 'Try again.', nextNode: 'access' },
+          { text: 'Try the lockpick on the door instead.', nextNode: null },
+        ],
+      },
+    },
+  },
+
+  // ============================================================
+  // WATER TREATMENT PLANT - Lore Terminal (Control Room)
+  // ============================================================
+
+  plant_lore_terminal_dialog: {
+    startNode: 'access',
+    nodes: {
+      access: {
+        speaker: 'Facility Records Terminal',
+        text: 'MUNICIPAL WATER AUTHORITY - TREATMENT PLANT 7-A\nESTABLISHED: 2042\nLAST MAINTENANCE LOG: 2077-10-22\nCURRENT DATE: [CLOCK ERROR]\nSTATUS: OPERATIONAL (Note: maintenance schedule overdue by an amount the system refuses to calculate out of self-preservation.)',
+        responses: [
+          { text: 'Review the facility logs.', nextNode: 'logs' },
+          { text: 'Check personnel records.', nextNode: 'personnel' },
+          { text: 'Close terminal.', nextNode: null },
+        ],
+      },
+
+      logs: {
+        speaker: 'Facility Records Terminal',
+        text: 'LOG - 2077-10-22: "Water purification output at 103% capacity. Management commends all staff. Free pizza Friday confirmed."\nLOG - 2077-10-23 08:14: "Unusual atmospheric readings. Proceeding normally."\nLOG - 2077-10-23 09:47: "Sirens. Emergency protocols engaged. God help us."\nLOG - 2077-10-23 09:47 (automated): FALLOUT PROTOCOLS ACTIVE. WATER RESERVES SEALED. PURIFICATION CHIP SECURED.',
+        onEnter: [{ type: 'giveXP', amount: 20 }],
+        responses: [
+          { text: '...They never got the free pizza.', nextNode: null },
+          { text: 'Check personnel records.', nextNode: 'personnel' },
+        ],
+      },
+
+      personnel: {
+        speaker: 'Facility Records Terminal',
+        text: 'STAFF ROSTER: 47 employees.\nACCOUNTED FOR (evacuation confirmed): 3\nSTATUS UNKNOWN: 44\n\nThe terminal lists 44 names. You read a few. Janet Kowalski, shift supervisor. Marcus Webb, systems engineer. A dozen others. Real people with lunch orders and dentist appointments and plans for the weekend. None of them got their weekend.',
+        onEnter: [{ type: 'giveXP', amount: 10 }],
+        responses: [
+          { text: 'The world before the war sounds... normal.', nextNode: null },
+          { text: 'Close terminal.', nextNode: null },
+        ],
+      },
+    },
+  },
+
+  // ============================================================
+  // WATER TREATMENT PLANT - Water Chip Container
+  // ============================================================
+
+  water_chip_dialog: {
+    startNode: 'examine',
+    nodes: {
+      examine: {
+        speaker: 'Purification Control Unit',
+        text: 'A sealed housing unit for the facility\'s water purification chip. A small indicator light still blinks green - the emergency seal has kept the contents intact through 210 years of war, decay, and one very territorial mutant. The chip is right there. All you have to do is take it.',
+        responses: [
+          {
+            text: 'Carefully remove the water purification chip.',
+            nextNode: 'take_chip',
+            conditions: [{ type: 'noFlag', flag: 'chip_collected' }],
+          },
+          {
+            text: 'The housing is empty. The chip is already gone.',
+            nextNode: null,
+            conditions: [{ type: 'flag', flag: 'chip_collected' }],
+          },
+          { text: 'Leave it for now.', nextNode: null },
+        ],
+      },
+
+      take_chip: {
+        speaker: 'Purification Control Unit',
+        text: 'You crack the seal - a soft hiss of preserved air from 2077 - and carefully extract the water purification chip. It fits in your palm: a small green circuit board that is, as far as Dustbowl is concerned, the most important object in the world.\n\nThe indicator light goes dark.',
+        onEnter: [
+          { type: 'giveItem', item: 'water_chip' },
+          { type: 'setFlag', flag: 'chip_collected' },
+          { type: 'advanceQuest', quest: 'water_we_gonna_do', stage: 'return_chip' },
+          { type: 'giveXP', amount: 50 },
+          { type: 'message', msgType: 'quest', text: 'You found the Water Purification Chip! Return it to Mayor Bottlecap in Dustbowl.' },
+        ],
+        responses: [
+          { text: 'Time to get out of this place.', nextNode: null },
         ],
       },
     },
